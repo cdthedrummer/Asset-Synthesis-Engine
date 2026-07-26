@@ -1,75 +1,73 @@
 import React, { useState } from 'react';
-import { ArrowUp, X, GripVertical, Plus, ArrowLeft, ChevronRight, Maximize2, ExternalLink } from 'lucide-react';
+import { ArrowUp, X, Plus, ArrowLeft, ChevronRight, Maximize2, ExternalLink } from 'lucide-react';
 
-const MOVES = [
-  { text: "Book the food-handler exam", time: "Tonight, 20 mins", pinId: "cert" },
-  { text: "Draft the café pitch with me", time: "Tomorrow", pinId: "wholesale" },
-  { text: "Walk into Fern & Grounds with samples", time: "Friday, pre-10am", pinId: "wholesale" }
-];
+const STYLE_GUIDE = {
+  colors: {
+    canvas: '#F9F8F6',
+    surface: '#FFFFFF',
+    text: {
+      primary: '#1C1917',
+      secondary: '#57534E',
+      tertiary: '#A8A29E',
+    },
+    border: '#E7E5E4',
+    divider: '#F5F5F4',
+    verdict: {
+      "START": { text: '#15803D', bg: '#F0FDF4', border: '#BBF7D0' },
+      "SCHEDULE": { text: '#B45309', bg: '#FFFBEB', border: '#FDE68A' },
+      "GET HELP": { text: '#0369A1', bg: '#F0F9FF', border: '#BAE6FD' },
+      "SKIP FOR NOW": { text: '#BE123C', bg: '#FFF1F2', border: '#FECDD3' }
+    }
+  },
+  radii: {
+    card: '24px',
+    pill: '999px'
+  },
+  shadows: {
+    card: '0 8px 24px rgba(28, 25, 23, 0.04)',
+    float: '0 12px 32px rgba(28, 25, 23, 0.08)',
+    sm: '0 2px 8px rgba(28, 25, 23, 0.03)'
+  }
+};
 
 const ITEMS = [
   {
     id: "cert",
     name: "Food-handler certification",
     metrics: "Easy · High impact",
-    verdict: "START",
-    color: "text-[#00FF66]",
-    bg: "bg-[#00FF66]/10",
-    border: "border-[#00FF66]/20"
+    verdict: "START"
   },
   {
     id: "wholesale",
     name: "Wholesale pitch: three local cafés",
     metrics: "Medium · High impact",
-    verdict: "START",
-    color: "text-[#00FF66]",
-    bg: "bg-[#00FF66]/10",
-    border: "border-[#00FF66]/20"
+    verdict: "START"
   },
   {
     id: "website",
     name: "Finish the website",
     metrics: "Med · Med impact",
-    verdict: "SCHEDULE",
-    color: "text-[#FFB800]",
-    bg: "bg-[#FFB800]/10",
-    border: "border-[#FFB800]/20"
+    verdict: "SCHEDULE"
   },
   {
     id: "kitchen",
     name: "Commercial kitchen lease",
     metrics: "Hard · High impact",
-    verdict: "GET HELP",
-    color: "text-[#00CCFF]",
-    bg: "bg-[#00CCFF]/10",
-    border: "border-[#00CCFF]/20"
+    verdict: "GET HELP"
   },
   {
     id: "instagram",
     name: "Instagram content calendar",
     metrics: "Easy · Low impact",
-    verdict: "SKIP FOR NOW",
-    color: "text-[#FF3366]",
-    bg: "bg-[#FF3366]/10",
-    border: "border-[#FF3366]/20"
+    verdict: "SKIP FOR NOW"
   },
   {
     id: "cakes",
     name: "Custom cake orders",
     metrics: "Med · Low impact",
-    verdict: "SKIP FOR NOW",
-    color: "text-[#FF3366]",
-    bg: "bg-[#FF3366]/10",
-    border: "border-[#FF3366]/20"
+    verdict: "SKIP FOR NOW"
   }
 ];
-
-const VERDICT_STYLES: Record<string, string> = {
-  "START": "text-[#00FF66] bg-[#00FF66]/10 border-[#00FF66]/20",
-  "SCHEDULE": "text-[#FFB800] bg-[#FFB800]/10 border-[#FFB800]/20",
-  "GET HELP": "text-[#00CCFF] bg-[#00CCFF]/10 border-[#00CCFF]/20",
-  "SKIP FOR NOW": "text-[#FF3366] bg-[#FF3366]/10 border-[#FF3366]/20"
-};
 
 const VERDICT_EXPLANATIONS: Record<string, string> = {
   "START": "Do it in the next 48 hours.",
@@ -95,76 +93,76 @@ const CHAT_HISTORY: Record<string, Array<{ role: 'user' | 'ai', text: string }>>
 };
 
 const CertVisual = () => (
-  <div className="space-y-3 py-2">
+  <div className="space-y-3 py-1">
     <div className="flex items-center gap-3">
-      <div className="w-7 h-7 rounded-full bg-[#00FF66] flex items-center justify-center text-black font-mono text-[10px] font-bold shrink-0 shadow-[0_0_12px_rgba(0,255,102,0.4)]">1</div>
-      <div className="flex-1">
-        <p className="text-white/90 text-[13px] font-medium leading-tight mb-0.5">Book exam</p>
-        <p className="text-white/40 text-[10px] font-mono">Tonight, 20 min</p>
+      <div className="w-7 h-7 rounded-full bg-[var(--color-text-primary)] flex items-center justify-center text-white font-mono text-[11px] font-bold shrink-0 shadow-sm">1</div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[var(--color-text-primary)] text-[13px] font-semibold leading-tight mb-0.5 truncate">Book exam</p>
+        <p className="text-[var(--color-text-tertiary)] text-[10px] font-mono truncate">Tonight, 20 min</p>
       </div>
     </div>
-    <div className="flex items-center gap-3">
-      <div className="w-7 h-7 rounded-full border-2 border-white/20 flex items-center justify-center text-white/30 font-mono text-[10px] font-bold shrink-0">2</div>
-      <div className="flex-1">
-        <p className="text-white/50 text-[13px] leading-tight mb-0.5">Take exam</p>
-        <p className="text-white/30 text-[10px] font-mono">This week</p>
+    <div className="flex items-center gap-3 opacity-60">
+      <div className="w-7 h-7 rounded-full border-2 border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-tertiary)] font-mono text-[11px] font-bold shrink-0 bg-[var(--color-canvas)]">2</div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[var(--color-text-secondary)] text-[13px] font-medium leading-tight mb-0.5 truncate">Take exam</p>
+        <p className="text-[var(--color-text-tertiary)] text-[10px] font-mono truncate">This week</p>
       </div>
     </div>
-    <div className="flex items-center gap-3">
-      <div className="w-7 h-7 rounded-full border-2 border-white/10 flex items-center justify-center text-white/20 font-mono text-[10px] font-bold shrink-0">3</div>
-      <div className="flex-1">
-        <p className="text-white/40 text-[13px] leading-tight mb-0.5">Certified</p>
-        <p className="text-white/20 text-[10px] font-mono">Unlocks wholesale</p>
+    <div className="flex items-center gap-3 opacity-40">
+      <div className="w-7 h-7 rounded-full border-2 border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-tertiary)] font-mono text-[11px] font-bold shrink-0 bg-[var(--color-canvas)]">3</div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[var(--color-text-secondary)] text-[13px] font-medium leading-tight mb-0.5 truncate">Certified</p>
+        <p className="text-[var(--color-text-tertiary)] text-[10px] font-mono truncate">Unlocks wholesale</p>
       </div>
     </div>
   </div>
 );
 
 const WholesaleVisual = () => (
-  <div className="space-y-2.5 py-2">
+  <div className="space-y-2.5 py-1">
     <div className="flex items-center gap-3">
-      <div className="w-2 h-2 rounded-full bg-[#00FF66] shadow-[0_0_8px_rgba(0,255,102,0.6)] shrink-0"></div>
-      <div className="flex-1">
-        <p className="text-white/90 text-[13px] font-medium">Fern & Grounds</p>
-        <p className="text-white/40 text-[10px] font-mono">Samples Friday</p>
+      <div className="w-2 h-2 rounded-full bg-[#10B981] shadow-[0_0_8px_rgba(16,185,129,0.4)] shrink-0"></div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[var(--color-text-primary)] text-[13px] font-semibold truncate">Fern & Grounds</p>
+        <p className="text-[var(--color-text-tertiary)] text-[10px] font-mono truncate">Samples Friday</p>
       </div>
     </div>
     <div className="flex items-center gap-3">
-      <div className="w-2 h-2 rounded-full bg-[#FFB800] shadow-[0_0_8px_rgba(255,184,0,0.4)] shrink-0"></div>
-      <div className="flex-1">
-        <p className="text-white/80 text-[13px]">Copper Cup</p>
-        <p className="text-white/40 text-[10px] font-mono">Draft ready</p>
+      <div className="w-2 h-2 rounded-full bg-[#F59E0B] shadow-[0_0_8px_rgba(245,158,11,0.4)] shrink-0"></div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[var(--color-text-secondary)] text-[13px] font-medium truncate">Copper Cup</p>
+        <p className="text-[var(--color-text-tertiary)] text-[10px] font-mono truncate">Draft ready</p>
       </div>
     </div>
     <div className="flex items-center gap-3">
-      <div className="w-2 h-2 rounded-full border border-white/30 shrink-0"></div>
-      <div className="flex-1">
-        <p className="text-white/60 text-[13px]">Marigold Coffee</p>
-        <p className="text-white/30 text-[10px] font-mono">Not started</p>
+      <div className="w-2 h-2 rounded-full border-2 border-[var(--color-border)] shrink-0"></div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[var(--color-text-tertiary)] text-[13px] font-medium truncate">Marigold Coffee</p>
+        <p className="text-[var(--color-divider)] text-[10px] font-mono truncate">Not started</p>
       </div>
     </div>
   </div>
 );
 
 const WebsiteVisual = () => (
-  <div className="bg-white/5 border border-white/10 rounded-xl p-3 mt-2">
-    <h4 className="text-white/90 text-[12px] font-medium mb-2.5 font-mono tracking-wide">Saturday Menu</h4>
+  <div className="bg-[var(--color-canvas)] border border-[var(--color-border)] rounded-xl p-3 mt-1 shadow-inner">
+    <h4 className="text-[var(--color-text-secondary)] text-[11px] font-bold mb-2.5 font-mono tracking-widest uppercase">Saturday Menu</h4>
     <div className="space-y-2">
       <div className="flex justify-between items-baseline gap-2">
-        <span className="text-white/80 text-[12px] truncate">Sourdough Loaf</span>
-        <span className="text-white/50 text-[11px] font-mono shrink-0">$9</span>
+        <span className="text-[var(--color-text-primary)] text-[12px] font-medium truncate">Sourdough Loaf</span>
+        <span className="text-[var(--color-text-tertiary)] text-[11px] font-mono shrink-0">$9</span>
       </div>
       <div className="flex justify-between items-baseline gap-2">
-        <span className="text-white/80 text-[12px] truncate">Morning Buns (4)</span>
-        <span className="text-white/50 text-[11px] font-mono shrink-0">$12</span>
+        <span className="text-[var(--color-text-primary)] text-[12px] font-medium truncate">Morning Buns (4)</span>
+        <span className="text-[var(--color-text-tertiary)] text-[11px] font-mono shrink-0">$12</span>
       </div>
       <div className="flex justify-between items-baseline gap-2">
-        <span className="text-white/80 text-[12px] truncate">Seeded Rye</span>
-        <span className="text-white/50 text-[11px] font-mono shrink-0">$8</span>
+        <span className="text-[var(--color-text-primary)] text-[12px] font-medium truncate">Seeded Rye</span>
+        <span className="text-[var(--color-text-tertiary)] text-[11px] font-mono shrink-0">$8</span>
       </div>
       <div className="flex justify-between items-baseline gap-2">
-        <span className="text-white/80 text-[12px] truncate">Galette of the Week</span>
-        <span className="text-white/50 text-[11px] font-mono shrink-0">$14</span>
+        <span className="text-[var(--color-text-primary)] text-[12px] font-medium truncate">Galette</span>
+        <span className="text-[var(--color-text-tertiary)] text-[11px] font-mono shrink-0">$14</span>
       </div>
     </div>
   </div>
@@ -172,57 +170,48 @@ const WebsiteVisual = () => (
 
 const KitchenVisual = () => (
   <div className="space-y-1.5 py-1 text-[11px]">
-    <div className="flex items-center gap-1.5 pb-1.5 border-b border-white/10">
-      <div className="flex-[2] text-white/40 font-mono text-[9px] uppercase tracking-wider">Permit</div>
-      <div className="flex-1 text-white/40 font-mono text-[9px] uppercase tracking-wider">Order</div>
-      <div className="flex-1 text-white/40 font-mono text-[9px] uppercase tracking-wider text-right">Status</div>
+    <div className="flex items-center gap-1.5 pb-2 border-b border-[var(--color-border)]">
+      <div className="flex-[2] text-[var(--color-text-tertiary)] font-mono text-[9px] uppercase tracking-widest">Permit</div>
+      <div className="flex-1 text-[var(--color-text-tertiary)] font-mono text-[9px] uppercase tracking-widest text-right">Status</div>
     </div>
     <div className="flex items-center gap-1.5 py-1">
-      <div className="flex-[2] text-white/90 text-[11px] truncate">Food Handler Card</div>
-      <div className="flex-1 text-[#00FF66] font-mono text-[10px]">1st</div>
-      <div className="flex-1 text-white/60 text-[10px] text-right truncate">booking</div>
+      <div className="flex-[2] text-[var(--color-text-primary)] font-medium text-[11px] truncate">Food Handler Card</div>
+      <div className="flex-1 text-[#10B981] text-[10px] font-medium text-right truncate">booking</div>
     </div>
-    <div className="flex items-center gap-1.5 py-1 bg-[#00CCFF]/5 -mx-2 px-2 rounded">
-      <div className="flex-[2] text-white/90 text-[11px] truncate">Cottage Food B</div>
-      <div className="flex-1 text-[#FFB800] font-mono text-[10px]">2nd</div>
-      <div className="flex-1 text-[#00CCFF] text-[10px] underline decoration-dotted text-right truncate">verify</div>
+    <div className="flex items-center gap-1.5 py-1 bg-[#FFFBEB] -mx-2 px-2 rounded">
+      <div className="flex-[2] text-[#D97706] font-medium text-[11px] truncate">Cottage Food B</div>
+      <div className="flex-1 text-[#D97706] text-[10px] font-medium underline decoration-dotted text-right truncate">verify</div>
     </div>
     <div className="flex items-center gap-1.5 py-1">
-      <div className="flex-[2] text-white/70 text-[11px] truncate">Business License</div>
-      <div className="flex-1 text-white/40 font-mono text-[10px]">3rd</div>
-      <div className="flex-1 text-white/40 text-[10px] text-right truncate">30 min</div>
-    </div>
-    <div className="flex items-center gap-1.5 py-1">
-      <div className="flex-[2] text-white/50 text-[11px] truncate">Kitchen Agreement</div>
-      <div className="flex-1 text-white/30 font-mono text-[10px]">4th</div>
-      <div className="flex-1 text-white/30 text-[10px] text-right truncate">after cafés</div>
+      <div className="flex-[2] text-[var(--color-text-secondary)] font-medium text-[11px] truncate">Business License</div>
+      <div className="flex-1 text-[var(--color-text-tertiary)] text-[10px] text-right truncate">30 min</div>
     </div>
   </div>
 );
 
 const InstagramVisual = () => {
-  const dates = ['Jul 26', 'Jul 27', 'Jul 28', 'Jul 29', 'Jul 30', 'Jul 31', 'Aug 1'];
-  const posts = [0, -1, -1, 3, -1, -1, 0];
+  const dates = ['Jul 26', 'Jul 27', 'Jul 28', 'Jul 29'];
+  const posts = [0, -1, 3, -1];
   
   return (
-    <div className="py-2">
+    <div className="py-1">
       <div className="flex items-center justify-between mb-3 w-full">
         {dates.map((d, i) => (
           <div key={i} className="flex flex-col items-center gap-1.5">
-            <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[9px] font-mono ${posts[i] === 0 ? 'bg-[#FF3366]/20 text-[#FF3366]' : posts[i] === 3 ? 'bg-white/10 text-white/30' : 'bg-transparent text-white/20'}`}>
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-mono font-bold ${posts[i] === 0 ? 'bg-[#FFF1F2] text-[#E11D48]' : posts[i] === 3 ? 'bg-[var(--color-text-primary)] text-white shadow-md' : 'bg-[var(--color-canvas)] text-[var(--color-text-tertiary)] border border-[var(--color-border)]'}`}>
               {posts[i] >= 0 ? '●' : ''}
             </div>
-            <span className="text-white/30 text-[8px] font-mono">{d.split(' ')[1]}</span>
+            <span className="text-[var(--color-text-tertiary)] text-[9px] font-mono">{d.split(' ')[1]}</span>
           </div>
         ))}
       </div>
-      <div className="space-y-1.5 text-[11px]">
-        <div className="flex items-center gap-2 text-white/70">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#FF3366] shrink-0"></div>
+      <div className="space-y-2 text-[11px]">
+        <div className="flex items-center gap-2 text-[var(--color-text-primary)] font-medium">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#E11D48] shrink-0"></div>
           <span className="truncate">Sat: sell-out shot</span>
         </div>
-        <div className="flex items-center gap-2 text-white/50">
-          <div className="w-1.5 h-1.5 rounded-full bg-white/30 shrink-0"></div>
+        <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
+          <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-text-primary)] shrink-0"></div>
           <span className="truncate">Wed: proofing timelapse</span>
         </div>
       </div>
@@ -231,35 +220,29 @@ const InstagramVisual = () => {
 };
 
 const CakesVisual = () => {
-  const months = ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'];
-  const orders = [3, 4, 5, 6, 8, 9];
+  const months = ['Sep', 'Oct', 'Nov', 'Dec', 'Jan'];
+  const orders = [4, 5, 6, 8, 9];
   const max = 10;
   const cap = 2;
   
   return (
-    <div className="py-2">
-      <div className="flex items-end justify-between h-24 mb-2">
+    <div className="py-1">
+      <div className="flex items-end justify-between h-20 mb-2">
         {orders.map((val, i) => (
           <div key={i} className="flex flex-col items-center gap-1.5 flex-1">
-            <div className="w-full px-0.5">
-              <div className="relative">
-                <div className="w-full bg-[#FF3366]/20 rounded-t" style={{ height: `${(val / max) * 80}px` }}></div>
-                {val > cap && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-[#FF3366]" style={{ height: `${(cap / max) * 80}px` }}></div>
-                )}
+            <div className="w-full px-1">
+              <div className="relative w-full bg-[var(--color-canvas)] rounded-t-sm overflow-hidden" style={{ height: `${(val / max) * 100}%` }}>
+                <div className="absolute top-0 left-0 right-0 bg-[#FECDD3]" style={{ height: `${((val - cap) / val) * 100}%` }}></div>
+                <div className="absolute bottom-0 left-0 right-0 bg-[#BE123C]" style={{ height: `${(cap / val) * 100}%` }}></div>
               </div>
             </div>
           </div>
         ))}
       </div>
-      <div className="flex items-center justify-between px-0.5">
+      <div className="flex items-center justify-between px-1">
         {months.map((m, i) => (
-          <span key={i} className="text-white/30 text-[9px] font-mono flex-1 text-center">{m}</span>
+          <span key={i} className="text-[var(--color-text-tertiary)] text-[9px] font-mono flex-1 text-center">{m}</span>
         ))}
-      </div>
-      <div className="mt-3 flex items-center gap-2">
-        <div className="w-3 h-[2px] bg-white/40"></div>
-        <span className="text-white/40 text-[10px] font-mono">cap: 2/mo</span>
       </div>
     </div>
   );
@@ -274,14 +257,22 @@ const VISUALS: Record<string, React.ComponentType> = {
   cakes: CakesVisual
 };
 
-const VerdictStamp = ({ verdict, onClick }: { verdict: string, onClick: (e: React.MouseEvent, v: string) => void }) => (
-  <button 
-    onClick={(e) => onClick(e, verdict)}
-    className={`inline-flex w-max items-center px-1.5 py-0.5 rounded-[4px] border ${VERDICT_STYLES[verdict]} font-mono text-[9px] uppercase tracking-widest font-bold active:scale-95 transition-transform relative z-10`}
-  >
-    {verdict}
-  </button>
-);
+const VerdictStamp = ({ verdict, onClick }: { verdict: string, onClick: (e: React.MouseEvent, v: string) => void }) => {
+  const style = STYLE_GUIDE.colors.verdict[verdict as keyof typeof STYLE_GUIDE.colors.verdict];
+  return (
+    <button 
+      onClick={(e) => onClick(e, verdict)}
+      className="inline-flex w-max items-center px-2 py-1 rounded-[var(--radius-pill)] border font-mono text-[9px] uppercase tracking-[0.05em] font-bold active:scale-95 transition-transform relative z-10"
+      style={{
+        backgroundColor: style.bg,
+        color: style.text,
+        borderColor: style.border
+      }}
+    >
+      {verdict}
+    </button>
+  );
+};
 
 const BoardItem = ({ item, onClick, onVerdictClick }: { item: typeof ITEMS[0], onClick: () => void, onVerdictClick: (e: React.MouseEvent, v: string) => void }) => {
   const Visual = VISUALS[item.id];
@@ -289,55 +280,63 @@ const BoardItem = ({ item, onClick, onVerdictClick }: { item: typeof ITEMS[0], o
   return (
     <div 
       onClick={onClick}
-      className="bg-[#111111] border border-white/10 rounded-2xl p-3.5 flex flex-col gap-2 w-full shadow-sm hover:border-white/20 transition-colors text-left active:scale-[0.98] cursor-pointer"
+      className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] p-4 flex flex-col gap-2 w-full shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-float)] transition-all text-left active:scale-[0.98] cursor-pointer mb-3 break-inside-avoid"
     >
       <div>
         <VerdictStamp verdict={item.verdict} onClick={onVerdictClick} />
       </div>
-      <div className="mt-1">
-        <h3 className="font-outfit text-[14px] font-medium text-white/90 leading-snug mb-1">
+      <div className="mt-2">
+        <h3 className="font-primary text-[15px] font-bold text-[var(--color-text-primary)] leading-snug mb-1">
           {item.name}
         </h3>
-        <p className="font-mono text-[9px] text-white/40 uppercase tracking-wide">
-          {item.metrics.split('·')[0].trim()} <span className="mx-0.5 opacity-50">·</span> {item.metrics.split('·')[1].trim()}
+        <p className="font-mono text-[9px] text-[var(--color-text-tertiary)] uppercase tracking-wider font-bold">
+          {item.metrics.split('·')[0].trim()} <span className="mx-1 opacity-50">·</span> {item.metrics.split('·')[1].trim()}
         </p>
       </div>
-      <div className="w-6 h-[1px] bg-white/10 my-0.5"></div>
-      {Visual && <Visual />}
+      {Visual && (
+        <>
+          <div className="w-8 h-[2px] bg-[var(--color-divider)] my-2"></div>
+          <Visual />
+        </>
+      )}
     </div>
   );
 };
 
-const BeforeAfterCard = ({ onClick }: { onClick: () => void }) => (
-  <button 
-    onClick={onClick}
-    className="w-full text-left relative bg-[#1A1810] border border-[#FFB800]/30 rounded-2xl p-5 overflow-hidden shadow-[0_4px_20px_rgba(255,184,0,0.05)] active:scale-[0.98] transition-transform"
-  >
-    <div className="absolute top-0 right-0 w-32 h-32 bg-[#FFB800]/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+const TrajectoryCard = ({ onClick }: { onClick: () => void }) => (
+  <button onClick={onClick} className="w-full text-left bg-[var(--color-surface)] rounded-[var(--radius-card)] p-5 shadow-[var(--shadow-card)] border border-[var(--color-border)] active:scale-[0.98] transition-transform overflow-hidden relative block">
+    <div className="flex justify-between items-start mb-4">
+      <div>
+        <h4 className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-text-tertiary)] font-bold mb-1">Projection</h4>
+        <div className="font-primary text-[18px] font-bold text-[var(--color-text-primary)]">Summer '27</div>
+      </div>
+      <div className="text-right">
+        <h4 className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-text-tertiary)] font-bold mb-1">Target</h4>
+        <div className="font-primary text-[18px] font-bold text-[#10B981]">~$2,400<span className="text-[13px] text-[var(--color-text-secondary)] font-medium">/wk</span></div>
+      </div>
+    </div>
     
-    <div className="relative">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <h4 className="font-mono text-[9px] uppercase tracking-widest text-[#FFB800]/50 mb-3">Now</h4>
-          <div className="space-y-2 text-[12px]">
-            <div className="text-white/60">Saturday-only</div>
-            <div className="text-white/90 font-medium">~$400/wk</div>
-            <div className="text-white/60">0 wholesale</div>
-          </div>
-        </div>
-        <div>
-          <h4 className="font-mono text-[9px] uppercase tracking-widest text-[#FFB800]/70 mb-3">Summer '27</h4>
-          <div className="space-y-2 text-[12px]">
-            <div className="text-white/80">10 accounts</div>
-            <div className="text-[#FFB800] font-medium">~$2,400/wk</div>
-            <div className="text-white/80">Menu live</div>
-          </div>
-        </div>
-      </div>
-      
-      <div className="mt-5 pt-3 border-t border-[#FFB800]/10 flex items-center justify-center gap-2 text-[#FFB800]/40 text-[10px] font-mono uppercase tracking-widest">
-        <Maximize2 className="w-3 h-3" /> Tap for trajectory
-      </div>
+    <div className="h-28 w-full relative mt-2">
+      <svg viewBox="0 0 350 100" className="w-full h-full overflow-visible">
+        <defs>
+          <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#10B981" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d="M 0,95 L 70,85 L 161,62 L 255,40 L 350,12 L 350,100 L 0,100 Z" fill="url(#chartFill)" />
+        <path d="M 0,95 L 70,85" stroke="#10B981" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        <path d="M 70,85 L 161,62 L 255,40 L 350,12" stroke="#10B981" strokeWidth="2.5" strokeDasharray="5,5" fill="none" strokeLinecap="round" />
+        
+        <circle cx="70" cy="85" r="4" fill="#FFFFFF" stroke="#10B981" strokeWidth="2.5" />
+        <circle cx="161" cy="62" r="4" fill="#FFFFFF" stroke="#10B981" strokeWidth="2.5" />
+        <circle cx="255" cy="40" r="4" fill="#FFFFFF" stroke="#10B981" strokeWidth="2.5" />
+        <circle cx="350" cy="12" r="4" fill="#10B981" />
+      </svg>
+    </div>
+    
+    <div className="absolute bottom-3 left-0 right-0 flex items-center justify-center gap-2 text-[var(--color-text-tertiary)] text-[10px] font-mono uppercase tracking-widest font-bold">
+      <Maximize2 className="w-3 h-3" /> Tap to expand
     </div>
   </button>
 );
@@ -352,21 +351,21 @@ const HowWeGotHere = () => {
   const [expanded, setExpanded] = useState<number | null>(null);
   
   return (
-    <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-4 font-outfit shadow-sm">
+    <div className="pt-2 pb-2 px-1">
       <div className="flex items-center gap-2 mb-4">
-        <div className="w-2 h-2 rounded-sm bg-white/20"></div>
-        <span className="font-mono text-[9px] uppercase tracking-widest text-white/40 font-bold">How we got here</span>
+        <div className="w-2 h-2 rounded-sm bg-[var(--color-text-tertiary)]"></div>
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-text-secondary)] font-bold">How we got here</span>
       </div>
       
       <ul className="space-y-3.5">
         {BULLETS.map((b, i) => (
           <li key={i} className="cursor-pointer group" onClick={() => setExpanded(expanded === i ? null : i)}>
-            <div className="flex gap-2 text-[13px] text-white/70 leading-snug group-active:text-white/90 transition-colors">
-              <span className="text-white/30 shrink-0 mt-0.5">•</span>
+            <div className="flex gap-2 text-[14px] font-semibold text-[var(--color-text-primary)] leading-snug group-active:opacity-70 transition-opacity">
+              <span className="text-[var(--color-text-tertiary)] shrink-0 mt-0.5">•</span>
               <span className="flex-1 pr-2">{b.text}</span>
             </div>
             {expanded === i && (
-              <div className="mt-2 ml-4 pl-3 border-l border-white/10 text-[11px] text-white/40 font-mono leading-relaxed animate-fade-up">
+              <div className="mt-2 ml-4 pl-3 border-l-2 border-[var(--color-border)] text-[12px] text-[var(--color-text-secondary)] font-medium leading-relaxed animate-fade-up">
                 {b.source}
               </div>
             )}
@@ -377,70 +376,17 @@ const HowWeGotHere = () => {
   );
 };
 
-const PinnedSection = ({ onPushRoute }: { onPushRoute: (route: any) => void }) => (
-  <div className="bg-[#111111] pb-6 px-4 rounded-b-3xl border-b border-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.5)] relative z-10 animate-fade-up">
-    <div className="pt-6 pb-5 flex justify-between items-center">
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-white/40 font-bold">Next Leap</div>
-      <div className="flex gap-1 opacity-50">
-        <div className="w-1 h-1 rounded-full bg-white"></div>
-        <div className="w-1 h-1 rounded-full bg-white"></div>
-        <div className="w-1 h-1 rounded-full bg-white"></div>
-      </div>
-    </div>
-    
-    <div className="mb-8">
-      <HowWeGotHere />
-    </div>
-    
-    <h1 className="font-outfit text-[22px] text-white font-medium leading-tight mb-5">
-      Maya's Next Moves
-    </h1>
-    
-    <div className="space-y-1">
-      {MOVES.map((move, idx) => (
-        <div
-          key={idx}
-          onClick={() => onPushRoute({ type: 'pin', id: move.pinId })}
-          className="flex gap-3 items-start group w-full text-left cursor-pointer active:scale-[0.98] transition-transform py-2"
-        >
-          <div className="p-1 -ml-1 active:bg-white/5 rounded cursor-grab" onClick={e => e.stopPropagation()}>
-            <GripVertical className="w-4 h-4 text-white/20 flex-shrink-0 group-hover:text-white/40 transition-colors" />
-          </div>
-          <div className={`${idx === 0 ? 'w-5 h-5 rounded-full bg-[#00FF66]/20' : 'w-5 h-5 rounded-full border border-white/20'} flex items-center justify-center flex-shrink-0 mt-0.5 relative`}>
-            {idx === 0 ? (
-              <div className="w-2 h-2 rounded-full bg-[#00FF66] shadow-[0_0_8px_#00FF66]"></div>
-            ) : (
-              <span className="text-white/30 font-mono text-[9px]">{idx + 1}</span>
-            )}
-          </div>
-          <div className="flex-1">
-            <div className="flex flex-wrap items-center gap-2 mb-0.5">
-              <p className={`font-outfit ${idx === 0 ? 'text-white/90 font-medium group-hover:text-[#00FF66]' : 'text-white/70'} text-[15px] leading-snug transition-colors`}>
-                {move.text}
-              </p>
-              <div className="px-1.5 py-0.5 bg-white/5 rounded text-[8px] font-mono text-white/30 uppercase tracking-wider shrink-0 mt-0.5">
-                {ITEMS.find(i => i.id === move.pinId)?.name.split(' ')[0]}
-              </div>
-            </div>
-            <p className="font-mono text-white/40 text-[10px] uppercase tracking-wide">{move.time}</p>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
 const Breadcrumb = ({ onHome, onBack, title }: { onHome: () => void, onBack?: () => void, title: string }) => (
-  <div className="flex items-center gap-1 text-[13px] font-outfit">
-    <button onClick={onHome} className="text-white/40 hover:text-white py-2 pr-2 active:scale-95 transition-colors">Board</button>
-    <span className="text-white/20 shrink-0">/</span>
+  <div className="flex items-center gap-1.5 text-[14px] font-primary font-medium">
+    <button onClick={onHome} className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] py-2 pr-2 active:scale-95 transition-colors">Board</button>
+    <span className="text-[var(--color-border)] shrink-0">/</span>
     {onBack && (
       <>
-        <button onClick={onBack} className="text-white/40 hover:text-white px-2 py-2 active:scale-95 transition-colors">Back</button>
-        <span className="text-white/20 shrink-0">/</span>
+        <button onClick={onBack} className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] px-2 py-2 active:scale-95 transition-colors">Back</button>
+        <span className="text-[var(--color-border)] shrink-0">/</span>
       </>
     )}
-    <span className="text-white/90 pl-1 truncate flex-1">{title}</span>
+    <span className="text-[var(--color-text-primary)] pl-1 truncate flex-1 font-bold">{title}</span>
   </div>
 );
 
@@ -452,25 +398,25 @@ const ExpandedCakesView = ({ onBack, onHome }: any) => {
   const capRev = 360;
 
   return (
-    <div className="fixed inset-0 bg-[#000000] z-[60] flex flex-col animate-slide-up">
-      <div className="px-4 pt-6 pb-4 border-b border-white/10 bg-[#111111]/80 backdrop-blur-xl">
+    <div className="fixed inset-0 bg-[var(--color-canvas)] z-[60] flex flex-col animate-slide-up">
+      <div className="px-4 pt-6 pb-4 border-b border-[var(--color-border)] bg-[var(--color-canvas)]/80 backdrop-blur-xl">
         <Breadcrumb onHome={onHome} onBack={onBack} title="Custom cake orders" />
       </div>
       <div className="flex-1 overflow-y-auto p-5">
-        <h2 className="font-outfit text-[24px] font-medium text-white/90 mb-2">Revenue vs. Cap</h2>
-        <p className="text-[13px] text-white/50 mb-8 leading-relaxed">Each cake pays $180. Cap is 2/mo ($360). Time is better spent on wholesale pitches by fall.</p>
+        <h2 className="font-primary text-[24px] font-bold text-[var(--color-text-primary)] mb-2">Revenue vs. Cap</h2>
+        <p className="text-[14px] text-[var(--color-text-secondary)] font-medium mb-8 leading-relaxed">Each cake pays $180. Cap is 2/mo ($360). Time is better spent on wholesale pitches by fall.</p>
         
         <div className="space-y-6">
           {months.map((m, i) => (
             <div key={m} className="flex items-center gap-4">
-              <div className="w-8 text-[11px] font-mono text-white/40 text-right shrink-0">{m}</div>
-              <div className="flex-1 h-8 relative bg-white/5 rounded border border-white/5 overflow-hidden">
-                <div className="absolute inset-y-0 left-0 bg-[#FF3366]/20 flex items-center justify-end pr-2" style={{ width: `${(revenues[i] / maxRev) * 100}%` }}>
-                  <span className="text-[10px] font-mono text-[#FF3366]">${revenues[i]}</span>
+              <div className="w-8 text-[11px] font-mono font-bold text-[var(--color-text-tertiary)] text-right shrink-0">{m}</div>
+              <div className="flex-1 h-8 relative bg-[var(--color-surface)] rounded-[8px] border border-[var(--color-border)] overflow-hidden shadow-sm">
+                <div className="absolute inset-y-0 left-0 bg-[#FECDD3] flex items-center justify-end pr-2" style={{ width: `${(revenues[i] / maxRev) * 100}%` }}>
+                  <span className="text-[10px] font-mono font-bold text-[#BE123C]">${revenues[i]}</span>
                 </div>
                 {revenues[i] > capRev && (
-                  <div className="absolute inset-y-0 left-0 bg-[#FF3366] border-r border-[#FF3366] flex items-center px-2" style={{ width: `${(capRev / maxRev) * 100}%` }}>
-                    <span className="text-[10px] font-mono text-white/90 font-bold">${capRev}</span>
+                  <div className="absolute inset-y-0 left-0 bg-[#BE123C] border-r border-[#BE123C] flex items-center px-2" style={{ width: `${(capRev / maxRev) * 100}%` }}>
+                    <span className="text-[10px] font-mono font-bold text-white">${capRev}</span>
                   </div>
                 )}
               </div>
@@ -493,36 +439,36 @@ const ExpandedInstagramView = ({ onBack, onHome }: any) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-[#000000] z-[60] flex flex-col animate-slide-up">
-      <div className="px-4 pt-6 pb-4 border-b border-white/10 bg-[#111111]/80 backdrop-blur-xl">
+    <div className="fixed inset-0 bg-[var(--color-canvas)] z-[60] flex flex-col animate-slide-up">
+      <div className="px-4 pt-6 pb-4 border-b border-[var(--color-border)] bg-[var(--color-canvas)]/80 backdrop-blur-xl">
         <Breadcrumb onHome={onHome} onBack={onBack} title="Content calendar" />
       </div>
       <div className="flex-1 overflow-y-auto p-5 pb-12">
-        <h2 className="font-outfit text-[24px] font-medium text-white/90 mb-6">August 2026</h2>
+        <h2 className="font-primary text-[24px] font-bold text-[var(--color-text-primary)] mb-6">August 2026</h2>
         
-        <div className="grid grid-cols-7 gap-1.5 mb-2 text-center text-[10px] font-mono text-white/40">
+        <div className="grid grid-cols-7 gap-2 mb-2 text-center text-[10px] font-mono text-[var(--color-text-tertiary)] font-bold uppercase">
           <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
         </div>
-        <div className="grid grid-cols-7 gap-1.5 mb-10">
+        <div className="grid grid-cols-7 gap-2 mb-10">
           <div className="col-span-6"></div>
           {days.map(d => (
-            <div key={d} className={`aspect-square rounded-lg flex flex-col items-center justify-center relative ${posts[d] ? 'bg-white/10 border border-white/20' : 'border border-white/5'}`}>
-              <span className={`text-[11px] font-mono ${posts[d] ? 'text-white/90' : 'text-white/30'}`}>{d}</span>
+            <div key={d} className={`aspect-square rounded-[12px] flex flex-col items-center justify-center relative ${posts[d] ? 'bg-[var(--color-text-primary)] text-white shadow-md' : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-tertiary)]'}`}>
+              <span className={`text-[12px] font-mono ${posts[d] ? 'font-bold' : ''}`}>{d}</span>
               {posts[d] && (
-                <div className={`w-1.5 h-1.5 rounded-full mt-1 ${posts[d].type === 'video' ? 'bg-white' : 'bg-[#FF3366]'}`}></div>
+                <div className={`w-1.5 h-1.5 rounded-full mt-0.5 ${posts[d].type === 'video' ? 'bg-[#10B981]' : 'bg-[#E11D48]'}`}></div>
               )}
             </div>
           ))}
         </div>
 
-        <h3 className="font-mono text-[10px] uppercase tracking-widest text-white/40 mb-4">Planned Posts</h3>
+        <h3 className="font-mono text-[11px] uppercase tracking-widest text-[var(--color-text-tertiary)] mb-4 font-bold">Planned Posts</h3>
         <div className="space-y-3">
           {Object.entries(posts).map(([d, post]) => (
-            <div key={d} className="flex gap-4 p-3.5 bg-[#111111] rounded-xl border border-white/10">
-              <div className="w-10 text-[12px] font-mono text-white/40 shrink-0">Aug {d}</div>
+            <div key={d} className="flex gap-4 p-4 bg-[var(--color-surface)] rounded-[var(--radius-card)] border border-[var(--color-border)] shadow-[var(--shadow-sm)]">
+              <div className="w-12 text-[13px] font-mono font-bold text-[var(--color-text-secondary)] shrink-0 pt-0.5">Aug {d}</div>
               <div className="flex-1 min-w-0">
-                <div className="text-[14px] text-white/90 mb-1 truncate">{post.text}</div>
-                <div className="text-[10px] font-mono text-[#FF3366] uppercase tracking-wide">{post.type}</div>
+                <div className="text-[15px] font-bold text-[var(--color-text-primary)] mb-1 truncate">{post.text}</div>
+                <div className="text-[10px] font-mono font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest">{post.type}</div>
               </div>
             </div>
           ))}
@@ -534,34 +480,34 @@ const ExpandedInstagramView = ({ onBack, onHome }: any) => {
 
 const ExpandedKitchenView = ({ onBack, onHome }: any) => {
   const steps = [
-    { name: "Food Handler Card", status: "BOOKING NOW", color: "text-[#00FF66]", border: "border-[#00FF66]/30", rationale: "County requires this before you can touch commercial equipment.", link: "County Health Portal" },
-    { name: "Cottage Food Class B", status: "VERIFY YOURSELF", color: "text-[#FFB800]", border: "border-[#FFB800]/30", rationale: "Permits indirect sales (wholesale to cafes). Must confirm home kitchen limits.", link: "Class B Requirements" },
-    { name: "Business License", status: "30 MIN ONLINE", color: "text-white/60", border: "border-white/10", rationale: "Basic local compliance. Fast, but needs the Cottage Food address.", link: "City Clerk Site" },
-    { name: "Kitchen Agreement", status: "AFTER CAFÉS", color: "text-white/40", border: "border-white/5", rationale: "Don't pay rent until the demand is locked in. Wait for two yeses.", link: "Review Lease Template" }
+    { name: "Food Handler Card", status: "BOOKING NOW", color: "text-[#10B981]", bg: "bg-[#ECFDF5]", rationale: "County requires this before you can touch commercial equipment.", link: "County Health Portal" },
+    { name: "Cottage Food Class B", status: "VERIFY YOURSELF", color: "text-[#D97706]", bg: "bg-[#FFFBEB]", rationale: "Permits indirect sales (wholesale to cafes). Must confirm home kitchen limits.", link: "Class B Requirements" },
+    { name: "Business License", status: "30 MIN ONLINE", color: "text-[var(--color-text-tertiary)]", bg: "bg-[var(--color-surface)]", rationale: "Basic local compliance. Fast, but needs the Cottage Food address.", link: "City Clerk Site" },
+    { name: "Kitchen Agreement", status: "AFTER CAFÉS", color: "text-[var(--color-text-tertiary)]", bg: "bg-[var(--color-surface)]", rationale: "Don't pay rent until the demand is locked in. Wait for two yeses.", link: "Review Lease Template" }
   ];
 
   return (
-    <div className="fixed inset-0 bg-[#000000] z-[60] flex flex-col animate-slide-up">
-      <div className="px-4 pt-6 pb-4 border-b border-white/10 bg-[#111111]/80 backdrop-blur-xl">
+    <div className="fixed inset-0 bg-[var(--color-canvas)] z-[60] flex flex-col animate-slide-up">
+      <div className="px-4 pt-6 pb-4 border-b border-[var(--color-border)] bg-[var(--color-canvas)]/80 backdrop-blur-xl">
         <Breadcrumb onHome={onHome} onBack={onBack} title="Kitchen permits" />
       </div>
       <div className="flex-1 overflow-y-auto p-5 pb-12">
-        <h2 className="font-outfit text-[24px] font-medium text-white/90 mb-2">Permit Sequence</h2>
-        <p className="text-[13px] text-white/50 mb-8">Strict ordering required. Do not skip steps.</p>
+        <h2 className="font-primary text-[24px] font-bold text-[var(--color-text-primary)] mb-2">Permit Sequence</h2>
+        <p className="text-[14px] font-medium text-[var(--color-text-secondary)] mb-8">Strict ordering required. Do not skip steps.</p>
         
-        <div className="space-y-5 relative before:absolute before:inset-y-0 before:left-3 before:w-px before:bg-white/10">
+        <div className="space-y-5 relative before:absolute before:inset-y-4 before:left-[15px] before:w-[2px] before:bg-[var(--color-border)]">
           {steps.map((step, i) => (
-            <div key={i} className={`bg-[#111111] border ${step.border} rounded-xl p-4 ml-8 relative shadow-sm`}>
-              <div className="absolute top-5 -left-[25px] w-3 h-3 rounded-full bg-black border-2 border-white/30 z-10 flex items-center justify-center">
-                {i === 0 && <div className="w-1.5 h-1.5 bg-[#00FF66] rounded-full"></div>}
+            <div key={i} className={`bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] p-5 ml-10 relative shadow-[var(--shadow-sm)]`}>
+              <div className="absolute top-6 -left-[32px] w-[14px] h-[14px] rounded-full bg-white border-[3px] border-[var(--color-border)] z-10 flex items-center justify-center">
+                {i === 0 && <div className="w-2 h-2 bg-[#10B981] rounded-full"></div>}
               </div>
               <div className="flex justify-between items-start gap-2 mb-2">
-                <h3 className="font-medium text-white/90 text-[15px] leading-tight">{step.name}</h3>
-                <span className={`${step.color} text-[9px] font-mono uppercase tracking-wide shrink-0 text-right mt-0.5`}>{step.status}</span>
+                <h3 className="font-bold text-[var(--color-text-primary)] text-[16px] leading-tight">{step.name}</h3>
+                <span className={`${step.color} ${step.bg} px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-widest shrink-0 text-right`}>{step.status}</span>
               </div>
-              <p className="text-[13px] text-white/60 mb-5 leading-relaxed">{step.rationale}</p>
-              <button className={`flex items-center gap-2 ${i === 0 ? 'text-[#00FF66]' : 'text-white/40'} text-[11px] font-mono uppercase tracking-wide active:opacity-70 p-1 -ml-1`}>
-                <ExternalLink className="w-3 h-3" /> {step.link}
+              <p className="text-[14px] font-medium text-[var(--color-text-secondary)] mb-5 leading-relaxed">{step.rationale}</p>
+              <button className={`flex items-center gap-2 ${i === 0 ? 'text-[#10B981]' : 'text-[var(--color-text-tertiary)]'} text-[12px] font-mono font-bold uppercase tracking-widest active:opacity-70 transition-opacity`}>
+                <ExternalLink className="w-3.5 h-3.5" /> {step.link}
               </button>
             </div>
           ))}
@@ -572,59 +518,76 @@ const ExpandedKitchenView = ({ onBack, onHome }: any) => {
 };
 
 const ExpandedFallbackView = ({ item, onBack, onHome }: any) => (
-  <div className="fixed inset-0 bg-[#000000] z-[60] flex flex-col animate-slide-up">
-    <div className="px-4 pt-6 pb-4 border-b border-white/10 bg-[#111111]/80 backdrop-blur-xl">
+  <div className="fixed inset-0 bg-[var(--color-canvas)] z-[60] flex flex-col animate-slide-up">
+    <div className="px-4 pt-6 pb-4 border-b border-[var(--color-border)] bg-[var(--color-canvas)]/80 backdrop-blur-xl">
       <Breadcrumb onHome={onHome} onBack={onBack} title={item.name} />
     </div>
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-      <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-5">
-        <Maximize2 className="w-6 h-6 text-white/20" />
+      <div className="w-16 h-16 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm flex items-center justify-center mb-5">
+        <Maximize2 className="w-6 h-6 text-[var(--color-text-tertiary)]" />
       </div>
-      <h2 className="font-outfit text-[20px] font-medium text-white/90 mb-3">{item.name}</h2>
-      <p className="text-[13px] text-white/50 leading-relaxed max-w-[250px]">Detailed interactive visual view would render here.</p>
+      <h2 className="font-primary text-[20px] font-bold text-[var(--color-text-primary)] mb-3">{item.name}</h2>
+      <p className="text-[14px] font-medium text-[var(--color-text-secondary)] leading-relaxed max-w-[250px]">Detailed interactive visual view would render here.</p>
     </div>
   </div>
 );
 
 const TrajectoryView = ({ onBack, onHome }: any) => (
-  <div className="fixed inset-0 bg-[#000000] z-[60] flex flex-col animate-slide-up">
-    <div className="px-4 pt-6 pb-4 border-b border-white/10 bg-[#111111]/80 backdrop-blur-xl">
+  <div className="fixed inset-0 bg-[var(--color-canvas)] z-[60] flex flex-col animate-slide-up">
+    <div className="px-4 pt-6 pb-4 border-b border-[var(--color-border)] bg-[var(--color-canvas)]/80 backdrop-blur-xl">
       <Breadcrumb onHome={onHome} onBack={onBack} title="Revenue Trajectory" />
     </div>
     
     <div className="flex-1 p-5 overflow-y-auto pb-12">
-      <h2 className="font-outfit text-[24px] font-medium text-white/90 mb-8">Now to Summer '27</h2>
+      <h2 className="font-primary text-[28px] font-bold text-[var(--color-text-primary)] mb-8">Now to Summer '27</h2>
       
-      <div className="space-y-8 relative before:absolute before:inset-y-2 before:left-[11px] before:w-[2px] before:bg-white/10">
-        
-        <div className="relative pl-8">
-          <div className="absolute left-[7px] top-1.5 w-2.5 h-2.5 rounded-full bg-white/20"></div>
-          <div className="text-[10px] font-mono text-white/40 mb-1 tracking-widest uppercase">Now (Q3 '26)</div>
-          <div className="text-[18px] text-white/90 font-medium mb-1">~$400 / wk</div>
-          <div className="text-[13px] text-white/50 leading-relaxed">Saturday farmers market only. Maxed out physical hours.</div>
+      <div className="w-full h-44 mb-12 relative">
+        <svg viewBox="0 0 350 120" className="w-full h-full overflow-visible">
+          <defs>
+            <linearGradient id="chartFillLarge" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#10B981" stopOpacity="0.15" />
+              <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d="M 0,110 L 70,90 L 161,65 L 255,40 L 350,10 L 350,120 L 0,120 Z" fill="url(#chartFillLarge)" />
+          <path d="M 0,110 L 70,90" stroke="#10B981" strokeWidth="3" fill="none" strokeLinecap="round" />
+          <path d="M 70,90 L 161,65 L 255,40 L 350,10" stroke="#10B981" strokeWidth="3" strokeDasharray="5,5" fill="none" strokeLinecap="round" />
+          
+          <circle cx="70" cy="90" r="5" fill="#FFFFFF" stroke="#10B981" strokeWidth="2.5" />
+          <circle cx="161" cy="65" r="5" fill="#FFFFFF" stroke="#10B981" strokeWidth="2.5" />
+          <circle cx="255" cy="40" r="5" fill="#FFFFFF" stroke="#10B981" strokeWidth="2.5" />
+          <circle cx="350" cy="10" r="5" fill="#10B981" />
+        </svg>
+      </div>
+
+      <div className="space-y-8 relative before:absolute before:inset-y-2 before:left-[11px] before:w-[2px] before:bg-[var(--color-border)]">
+        <div className="relative pl-10">
+          <div className="absolute left-[6.5px] top-1.5 w-[11px] h-[11px] rounded-full bg-white border-2 border-[#10B981]"></div>
+          <div className="text-[11px] font-mono font-bold text-[var(--color-text-tertiary)] mb-1 tracking-widest uppercase">Now (Q3 '26)</div>
+          <div className="text-[20px] text-[var(--color-text-primary)] font-bold mb-1 font-primary">~$400 / wk</div>
+          <div className="text-[15px] text-[var(--color-text-secondary)] font-primary font-medium leading-relaxed">Saturday farmers market only. Maxed out physical hours.</div>
         </div>
 
-        <div className="relative pl-8">
-          <div className="absolute left-[7px] top-1.5 w-2.5 h-2.5 rounded-full bg-[#FFB800] shadow-[0_0_8px_rgba(255,184,0,0.5)]"></div>
-          <div className="text-[10px] font-mono text-[#FFB800]/70 mb-1 tracking-widest uppercase">Q4 '26</div>
-          <div className="text-[18px] text-white/90 font-medium mb-1">~$1,000 / wk</div>
-          <div className="text-[13px] text-white/50 leading-relaxed">3 wholesale accounts active. Kitchen lease signed.</div>
+        <div className="relative pl-10">
+          <div className="absolute left-[6.5px] top-1.5 w-[11px] h-[11px] rounded-full bg-white border-2 border-[#10B981]"></div>
+          <div className="text-[11px] font-mono font-bold text-[var(--color-text-tertiary)] mb-1 tracking-widest uppercase">Q4 '26</div>
+          <div className="text-[20px] text-[var(--color-text-primary)] font-bold mb-1 font-primary">~$1,000 / wk</div>
+          <div className="text-[15px] text-[var(--color-text-secondary)] font-primary font-medium leading-relaxed">3 wholesale accounts active. Kitchen lease signed.</div>
         </div>
 
-        <div className="relative pl-8">
-          <div className="absolute left-[7px] top-1.5 w-2.5 h-2.5 rounded-full bg-[#00FF66] shadow-[0_0_8px_rgba(0,255,102,0.5)]"></div>
-          <div className="text-[10px] font-mono text-[#00FF66]/70 mb-1 tracking-widest uppercase">Q1 '27</div>
-          <div className="text-[18px] text-white/90 font-medium mb-1">~$1,600 / wk</div>
-          <div className="text-[13px] text-white/50 leading-relaxed">6 wholesale accounts. Smooth weekly delivery cadence.</div>
+        <div className="relative pl-10">
+          <div className="absolute left-[6.5px] top-1.5 w-[11px] h-[11px] rounded-full bg-white border-2 border-[#10B981]"></div>
+          <div className="text-[11px] font-mono font-bold text-[var(--color-text-tertiary)] mb-1 tracking-widest uppercase">Q1 '27</div>
+          <div className="text-[20px] text-[var(--color-text-primary)] font-bold mb-1 font-primary">~$1,600 / wk</div>
+          <div className="text-[15px] text-[var(--color-text-secondary)] font-primary font-medium leading-relaxed">6 wholesale accounts. Smooth weekly delivery cadence.</div>
         </div>
 
-        <div className="relative pl-8">
-          <div className="absolute left-[7px] top-1.5 w-2.5 h-2.5 rounded-full bg-[#00CCFF] shadow-[0_0_8px_rgba(0,204,255,0.5)]"></div>
-          <div className="text-[10px] font-mono text-[#00CCFF]/70 mb-1 tracking-widest uppercase">Summer '27</div>
-          <div className="text-[24px] text-[#00CCFF] font-medium mb-1">~$2,400 / wk</div>
-          <div className="text-[13px] text-white/50 leading-relaxed">10 accounts. Rent is fully covered by wholesale.</div>
+        <div className="relative pl-10">
+          <div className="absolute left-[5.5px] top-1.5 w-[13px] h-[13px] rounded-full bg-[#10B981] border-2 border-white shadow-sm"></div>
+          <div className="text-[11px] font-mono font-bold text-[#10B981] mb-1 tracking-widest uppercase">Summer '27</div>
+          <div className="text-[28px] text-[var(--color-text-primary)] font-bold mb-1 font-primary">~$2,400 / wk</div>
+          <div className="text-[15px] text-[var(--color-text-secondary)] font-primary font-medium leading-relaxed">10 accounts. Rent is fully covered by wholesale.</div>
         </div>
-
       </div>
     </div>
   </div>
@@ -644,25 +607,25 @@ const DetailView = ({
   const [inputValue, setInputValue] = useState('');
   
   return (
-    <div className="fixed inset-0 bg-[#000000] z-[50] flex flex-col animate-slide-up">
-      <div className="px-4 pt-6 pb-4 border-b border-white/10 bg-[#111111]/80 backdrop-blur-xl">
+    <div className="fixed inset-0 bg-[var(--color-canvas)] z-[50] flex flex-col animate-slide-up">
+      <div className="px-4 pt-6 pb-4 border-b border-[var(--color-border)] bg-[var(--color-canvas)]/80 backdrop-blur-xl">
         <Breadcrumb onHome={onHome} onBack={stackLength > 2 ? onBack : undefined} title={item.name} />
       </div>
       
       <div className="flex-1 overflow-y-auto no-scrollbar px-4 py-6">
-        <div className="mb-5">
+        <div className="mb-6 flex flex-col items-start gap-3">
           <VerdictStamp verdict={item.verdict} onClick={onVerdictClick} />
-          <p className="font-mono text-[9px] text-white/40 uppercase tracking-wide mt-3">
-            {item.metrics.split('·')[0].trim()} <span className="mx-0.5 opacity-50">·</span> {item.metrics.split('·')[1].trim()}
+          <p className="font-mono text-[10px] text-[var(--color-text-tertiary)] uppercase tracking-widest font-bold">
+            {item.metrics.split('·')[0].trim()} <span className="mx-1 opacity-50">·</span> {item.metrics.split('·')[1].trim()}
           </p>
         </div>
         
         <button 
           onClick={() => onPushRoute({ type: 'expanded-visual', id: item.id })}
-          className="w-full text-left bg-[#111111] border border-white/10 rounded-2xl p-5 mb-8 active:scale-[0.98] transition-transform shadow-sm relative overflow-hidden"
+          className="w-full text-left bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] p-5 mb-8 active:scale-[0.98] transition-transform shadow-[var(--shadow-sm)] relative overflow-hidden block"
         >
           {Visual && <Visual />}
-          <div className="mt-5 pt-3 border-t border-white/5 flex items-center justify-center gap-2 text-white/30 text-[10px] font-mono uppercase tracking-widest">
+          <div className="mt-5 pt-4 border-t border-[var(--color-border)] flex items-center justify-center gap-2 text-[var(--color-text-tertiary)] text-[10px] font-mono uppercase tracking-widest font-bold">
             <Maximize2 className="w-3 h-3" /> Tap to expand
           </div>
         </button>
@@ -672,16 +635,16 @@ const DetailView = ({
             {chatHistory.map((msg: any, idx: number) => (
               <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'ai' && (
-                  <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <div className="w-2 h-2 rounded-sm bg-white/30"></div>
+                  <div className="w-8 h-8 rounded-[10px] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] flex items-center justify-center shrink-0">
+                    <div className="w-2.5 h-2.5 rounded-sm bg-[var(--color-text-tertiary)]"></div>
                   </div>
                 )}
-                <div className={`max-w-[80%] px-4 py-3 rounded-2xl ${
+                <div className={`max-w-[80%] px-4 py-3.5 rounded-[18px] shadow-[var(--shadow-sm)] ${
                   msg.role === 'user' 
-                    ? 'bg-white/10 text-white/90' 
-                    : 'bg-[#111111] border border-white/10 text-white/80'
+                    ? 'bg-[var(--color-text-primary)] text-white' 
+                    : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)]'
                 }`}>
-                  <p className="text-[14px] leading-relaxed font-outfit">{msg.text}</p>
+                  <p className="text-[14px] leading-relaxed font-primary font-medium">{msg.text}</p>
                 </div>
               </div>
             ))}
@@ -689,14 +652,14 @@ const DetailView = ({
         )}
         
         {chatHistory.length === 0 && (
-          <div className="text-center py-8 text-white/30 text-[13px] font-outfit mb-8">
+          <div className="text-center py-8 text-[var(--color-text-tertiary)] text-[14px] font-primary font-medium mb-8">
             No conversation yet
           </div>
         )}
 
         {relatedIds.length > 0 && (
-          <div className="mt-8 mb-32 border-t border-white/10 pt-6">
-            <div className="font-mono text-[9px] uppercase tracking-widest text-white/40 font-bold mb-4">Related Pins</div>
+          <div className="mt-8 mb-32 border-t border-[var(--color-border)] pt-6">
+            <div className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-text-tertiary)] font-bold mb-4">Related Pins</div>
             <div className="flex flex-wrap gap-2">
               {relatedIds.map((rid: string) => {
                 const rItem = ITEMS.find(i => i.id === rid);
@@ -705,10 +668,10 @@ const DetailView = ({
                   <button 
                     key={rid}
                     onClick={() => onPushRoute({ type: 'pin', id: rid })}
-                    className="flex items-center gap-2 px-3 py-2 bg-[#111111] hover:bg-white/10 border border-white/10 rounded-xl transition-colors active:scale-95"
+                    className="flex items-center gap-2 px-3.5 py-2.5 bg-[var(--color-surface)] shadow-[var(--shadow-sm)] hover:shadow-md border border-[var(--color-border)] rounded-[14px] transition-shadow active:scale-95"
                   >
-                    <span className="text-[12px] text-white/80 font-outfit truncate max-w-[150px]">{rItem.name}</span>
-                    <ChevronRight className="w-3 h-3 text-white/30 shrink-0" />
+                    <span className="text-[13px] text-[var(--color-text-secondary)] font-primary font-semibold truncate max-w-[150px]">{rItem.name}</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-[var(--color-text-tertiary)] shrink-0" />
                   </button>
                 )
               })}
@@ -717,12 +680,12 @@ const DetailView = ({
         )}
       </div>
       
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#000000] via-[#000000]/90 to-transparent pointer-events-none pb-6 z-10">
-        <div className="bg-[#1A1A1A]/90 border border-white/10 rounded-full p-1.5 pl-3 flex items-center gap-2 pointer-events-auto shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl transition-all focus-within:border-white/30 focus-within:bg-[#222]/90">
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded-full shrink-0 max-w-[120px]">
-            <span className="text-[11px] text-white/50 font-outfit truncate">{item.name.split(' ')[0]}</span>
-            <button onClick={onHome} className="text-white/30 hover:text-white/60 p-0.5 active:scale-95">
-              <X className="w-3 h-3" />
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[var(--color-canvas)] via-[var(--color-canvas)] to-transparent pb-6 z-10 pointer-events-none">
+        <div className="bg-white/80 border border-[var(--color-border)] rounded-full p-2 pl-3 flex items-center gap-2 shadow-[var(--shadow-float)] backdrop-blur-xl transition-all focus-within:border-[var(--color-text-tertiary)] focus-within:bg-white pointer-events-auto">
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[var(--color-canvas)] border border-[var(--color-border)] rounded-full shrink-0 max-w-[130px]">
+            <span className="text-[12px] text-[var(--color-text-secondary)] font-primary font-semibold truncate">{item.name.split(' ')[0]}</span>
+            <button onClick={onHome} className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] p-0.5 active:scale-95 transition-colors">
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
           <input 
@@ -730,10 +693,10 @@ const DetailView = ({
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Ask about this..." 
-            className="flex-1 bg-transparent border-none outline-none text-white font-outfit text-[14px] placeholder-white/30 min-w-0"
+            className="flex-1 bg-transparent border-none outline-none text-[var(--color-text-primary)] font-primary font-semibold text-[15px] placeholder-[var(--color-text-tertiary)] min-w-0"
           />
-          <button className="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center flex-shrink-0 hover:bg-[#00FF66] transition-colors active:scale-95">
-            <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+          <button className="w-10 h-10 rounded-full bg-[var(--color-text-primary)] text-white flex items-center justify-center flex-shrink-0 hover:opacity-80 transition-opacity active:scale-95">
+            <ArrowUp className="w-5 h-5 stroke-[2.5]" />
           </button>
         </div>
       </div>
@@ -764,16 +727,35 @@ export default function PinboardV2() {
   };
   
   return (
-    <div className="w-full min-h-screen bg-[#000000] text-white relative font-sans selection:bg-[#00FF66]/30 flex justify-center overflow-hidden">
+    <div className="w-full min-h-screen relative font-sans flex justify-center overflow-hidden bg-[var(--color-canvas)] text-[var(--color-text-primary)]">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
-        .font-outfit { font-family: 'Outfit', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+        
+        :root {
+          --color-canvas: ${STYLE_GUIDE.colors.canvas};
+          --color-surface: ${STYLE_GUIDE.colors.surface};
+          --color-text-primary: ${STYLE_GUIDE.colors.text.primary};
+          --color-text-secondary: ${STYLE_GUIDE.colors.text.secondary};
+          --color-text-tertiary: ${STYLE_GUIDE.colors.text.tertiary};
+          --color-border: ${STYLE_GUIDE.colors.border};
+          --color-divider: ${STYLE_GUIDE.colors.divider};
+          
+          --radius-card: ${STYLE_GUIDE.radii.card};
+          --radius-pill: ${STYLE_GUIDE.radii.pill};
+          
+          --shadow-card: ${STYLE_GUIDE.shadows.card};
+          --shadow-float: ${STYLE_GUIDE.shadows.float};
+          --shadow-sm: ${STYLE_GUIDE.shadows.sm};
+        }
+        
+        .font-primary { font-family: 'Plus Jakarta Sans', sans-serif; }
         .font-mono { font-family: 'Space Mono', monospace; }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
         @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(12px); }
+          from { opacity: 0; transform: translateY(16px); }
           to { opacity: 1; transform: translateY(0); }
         }
         @keyframes slideUp {
@@ -781,85 +763,73 @@ export default function PinboardV2() {
           to { transform: translateY(0); }
         }
         .animate-fade-up {
-          animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
           opacity: 0;
         }
         .animate-slide-up {
-          animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         .delay-100 { animation-delay: 100ms; }
         .delay-200 { animation-delay: 200ms; }
         .delay-300 { animation-delay: 300ms; }
         .delay-400 { animation-delay: 400ms; }
       `}</style>
-      
-      {/* Noise Overlay */}
-      <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-[100]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
 
       {toast && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] animate-fade-up w-[90%] max-w-[340px]">
-          <div className="bg-[#1A1A1A] border border-white/20 rounded-xl px-4 py-3 shadow-2xl flex flex-col gap-1 w-full relative overflow-hidden">
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/20"></div>
-            <span className="text-[10px] font-mono font-bold text-white/50 ml-1">{toast.title}</span>
-            <span className="text-[13px] text-white/90 font-outfit ml-1">{toast.desc}</span>
+          <div className="bg-white border border-[var(--color-border)] rounded-2xl px-4 py-3.5 shadow-[var(--shadow-float)] flex flex-col gap-1 w-full relative overflow-hidden">
+            <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: STYLE_GUIDE.colors.verdict[toast.title as keyof typeof STYLE_GUIDE.colors.verdict].text }}></div>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-widest" style={{ color: STYLE_GUIDE.colors.verdict[toast.title as keyof typeof STYLE_GUIDE.colors.verdict].text }}>{toast.title}</span>
+            <span className="text-[14px] text-[var(--color-text-secondary)] font-primary font-semibold ml-0.5">{toast.desc}</span>
           </div>
         </div>
       )}
 
       {/* Base Board Layer */}
       <div className="w-full max-w-[390px] min-h-screen relative flex flex-col no-scrollbar overflow-y-auto">
-        <PinnedSection onPushRoute={pushRoute} />
-        
-        <div className="px-4 py-5 space-y-4">
-          <div className="grid grid-cols-2 gap-3 items-start animate-fade-up delay-100">
-            <BoardItem item={ITEMS[0]} onClick={() => pushRoute({ type: 'pin', id: ITEMS[0].id })} onVerdictClick={handleVerdictClick} />
-            <BoardItem item={ITEMS[1]} onClick={() => pushRoute({ type: 'pin', id: ITEMS[1].id })} onVerdictClick={handleVerdictClick} />
+        <div className="px-4 py-6 space-y-6">
+          <div className="animate-fade-up delay-100">
+            <HowWeGotHere />
           </div>
           
           <div className="animate-fade-up delay-200">
-            <BeforeAfterCard onClick={() => pushRoute({ type: 'trajectory' })} />
+            <TrajectoryCard onClick={() => pushRoute({ type: 'trajectory' })} />
           </div>
           
-          <div className="grid grid-cols-2 gap-3 items-start animate-fade-up delay-300">
-            <div className="flex flex-col gap-3">
-              <BoardItem item={ITEMS[2]} onClick={() => pushRoute({ type: 'pin', id: ITEMS[2].id })} onVerdictClick={handleVerdictClick} />
-              <BoardItem item={ITEMS[4]} onClick={() => pushRoute({ type: 'pin', id: ITEMS[4].id })} onVerdictClick={handleVerdictClick} />
-            </div>
-            <div className="flex flex-col gap-3">
-              <BoardItem item={ITEMS[3]} onClick={() => pushRoute({ type: 'pin', id: ITEMS[3].id })} onVerdictClick={handleVerdictClick} />
-              <BoardItem item={ITEMS[5]} onClick={() => pushRoute({ type: 'pin', id: ITEMS[5].id })} onVerdictClick={handleVerdictClick} />
-            </div>
+          <div className="columns-2 gap-3 space-y-3 animate-fade-up delay-300">
+            {ITEMS.map((item) => (
+              <BoardItem key={item.id} item={item} onClick={() => pushRoute({ type: 'pin', id: item.id })} onVerdictClick={handleVerdictClick} />
+            ))}
           </div>
           
-          {/* Spacer for bottom bar */}
           <div className="h-28 w-full"></div>
         </div>
 
         {/* Input Bar */}
-        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] p-4 bg-gradient-to-t from-[#000000] via-[#000000]/90 to-transparent pointer-events-none pb-6 z-40 animate-fade-up delay-400">
-          <div className="flex items-end gap-2 pointer-events-auto">
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] p-4 bg-gradient-to-t from-[var(--color-canvas)] via-[var(--color-canvas)] to-transparent pointer-events-none pb-6 z-40 animate-fade-up delay-400">
+          <div className="flex items-end gap-3 pointer-events-auto">
             <div className="relative flex-1">
-              <div className="bg-[#1A1A1A]/90 border border-white/10 rounded-full p-1.5 pl-5 flex items-center gap-3 shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl transition-all focus-within:border-white/30 focus-within:bg-[#222]/90">
+              <div className="bg-white/80 border border-[var(--color-border)] rounded-full p-2 pl-5 flex items-center gap-3 shadow-[var(--shadow-float)] backdrop-blur-xl transition-all focus-within:border-[var(--color-text-tertiary)] focus-within:bg-white">
                 <input 
                   type="text" 
                   placeholder="Ask, or add a pin..." 
-                  className="flex-1 bg-transparent border-none outline-none text-white font-outfit text-[14px] placeholder-white/30 min-w-0"
+                  className="flex-1 bg-transparent border-none outline-none text-[var(--color-text-primary)] font-primary font-semibold text-[15px] placeholder-[var(--color-text-tertiary)] min-w-0"
                 />
-                <button className="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center flex-shrink-0 hover:bg-[#00FF66] hover:text-black transition-colors active:scale-95">
-                  <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+                <button className="w-10 h-10 rounded-full bg-[var(--color-text-primary)] text-white flex items-center justify-center flex-shrink-0 hover:opacity-80 transition-opacity active:scale-95">
+                  <ArrowUp className="w-5 h-5 stroke-[2.5]" />
                 </button>
               </div>
               {showAddHint && (
-                <div className="absolute bottom-full left-0 mb-2 bg-[#1A1A1A] border border-white/20 rounded-xl p-3 text-[12px] text-white/70 shadow-xl">
+                <div className="absolute bottom-full left-0 mb-3 bg-white border border-[var(--color-border)] rounded-2xl p-3.5 text-[13px] font-primary font-semibold text-[var(--color-text-secondary)] shadow-[var(--shadow-float)] animate-fade-up">
                   Type to add a new pin...
                 </div>
               )}
             </div>
             <button 
               onClick={() => setShowAddHint(!showAddHint)}
-              className="w-11 h-11 rounded-full bg-[#111111] border border-white/20 text-white flex items-center justify-center flex-shrink-0 hover:bg-white/10 transition-colors active:scale-95 shadow-[0_10px_40px_rgba(0,0,0,0.8)]"
+              className="w-[56px] h-[56px] rounded-full bg-white border border-[var(--color-border)] text-[var(--color-text-primary)] flex items-center justify-center flex-shrink-0 hover:bg-gray-50 transition-colors active:scale-95 shadow-[var(--shadow-float)]"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-6 h-6" />
             </button>
           </div>
         </div>
