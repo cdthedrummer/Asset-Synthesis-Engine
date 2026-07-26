@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Portfolio Pulse"
+version = "1.0.0"
+id = "artifacts/portfolio-pulse"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24936
+
+[services.development]
+run = "pnpm --filter @workspace/portfolio-pulse run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/portfolio-pulse", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/portfolio-pulse/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24936"
+BASE_PATH = "/"

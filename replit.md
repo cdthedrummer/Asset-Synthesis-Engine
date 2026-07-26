@@ -1,45 +1,20 @@
-# [Project name]
+# Portfolio Pulse
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+## Overview
+A private "living project HQ" for Charlie — a strategist managing ~29 work, personal, and life projects. It gives him a visual portfolio board with blunt AI verdicts, a daily podcast-style AI brief with audio, quick 15-second check-ins, an operating plan (max 3 active bets), and a context-aware AI advisor chat.
 
-## Run & Operate
+## Architecture
+- pnpm monorepo. Frontend: `artifacts/portfolio-pulse` (React + Vite, wouter, dark editorial theme, served at `/`). Backend: `artifacts/api-server` (Express 5) at `/api`.
+- Contract-first: `lib/api-spec/openapi.yaml` → `pnpm --filter @workspace/api-spec run codegen` → hooks in `lib/api-client-react`, Zod in `lib/api-zod`.
+- DB: Drizzle + Postgres (`lib/db/src/schema/`: projects, checkins, briefs, conversations, messages). Push with `pnpm --filter @workspace/db run push`.
+- AI: Replit AI Integrations (OpenAI proxy, no API key, billed to credits). Chat/brief model: `gpt-5.6-terra` (use `max_completion_tokens`, no temperature). Brief audio: `textToSpeech` (voice "onyx", mp3) stored as bytea in `briefs.audio`, served at `GET /api/briefs/{id}/audio`.
+- Advisor chat streams SSE from `POST /api/openai/conversations/{id}/messages`; frontend parses with fetch + ReadableStream (no generated hook). Portfolio context is injected server-side (`artifacts/api-server/src/lib/portfolio-context.ts`).
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
-
-## Stack
-
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
-
-## Where things live
-
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
-
-## Architecture decisions
-
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
-
-## Product
-
-_Describe the high-level user-facing capabilities of this app once they exist._
+## Product conventions
+- Verdicts: lead / delegate / partner / publish / park / kill. Categories: work / personal / life. Scores: difficulty 1-10, upside 1-10, traction 1-5. Max 3 active bets (`isActiveBet`).
+- Tone throughout (AI prompts + copy): direct, opinionated, "Hemingway not McKinsey". No emojis in UI.
+- Seed data (29 projects) was authored from Charlie's uploaded portfolio brief and retrospective — verdicts and truths are intentionally opinionated.
 
 ## User preferences
-
-_Populate as you build — explicit user instructions worth remembering across sessions._
-
-## Gotchas
-
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Charlie is non-technical and a visual learner: explain in outcome terms, not implementation terms.
+- Wants dark, confident visual style; daily podcast-style audio brief is a core feature, not a nice-to-have.

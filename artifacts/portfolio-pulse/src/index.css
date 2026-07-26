@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card-border: hsl(var(--card-border));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover-border: hsl(var(--popover-border));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --font-sans: 'Space Grotesk', sans-serif;
+  --font-serif: 'Playfair Display', serif;
+  --font-mono: Menlo, monospace;
+
+  --color-verdict-lead: hsl(142 71% 45%);
+  --color-verdict-delegate: hsl(270 70% 60%);
+  --color-verdict-partner: hsl(220 80% 60%);
+  --color-verdict-publish: hsl(45 93% 47%);
+  --color-verdict-park: hsl(220 10% 40%);
+  --color-verdict-kill: hsl(350 89% 60%);
+}
+
+:root {
+  --background: 222 47% 11%;
+  --foreground: 210 40% 98%;
+  --border: 217 33% 17%;
+  --input: 217 33% 17%;
+  --ring: 213 27% 84%;
+  --card: 222 47% 13%;
+  --card-foreground: 210 40% 98%;
+  --card-border: 217 33% 17%;
+  --popover: 222 47% 11%;
+  --popover-foreground: 210 40% 98%;
+  --popover-border: 217 33% 17%;
+  --primary: 210 40% 98%;
+  --primary-foreground: 222 47% 11%;
+  --secondary: 217 33% 17%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 217 33% 17%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 350 89% 60%;
+  --destructive-foreground: 210 40% 98%;
+  --radius: 0;
+  
+  --sidebar-primary-border: transparent;
+  --sidebar-accent-border: transparent;
+  --primary-border: transparent;
+  --secondary-border: transparent;
+  --muted-border: transparent;
+  --accent-border: transparent;
+  --destructive-border: transparent;
+}
+
+.dark {
+  --background: 222 47% 11%;
+  --foreground: 210 40% 98%;
+  --border: 217 33% 17%;
+  --input: 217 33% 17%;
+  --ring: 213 27% 84%;
+  --card: 222 47% 13%;
+  --card-foreground: 210 40% 98%;
+  --card-border: 217 33% 17%;
+  --popover: 222 47% 11%;
+  --popover-foreground: 210 40% 98%;
+  --popover-border: 217 33% 17%;
+  --primary: 210 40% 98%;
+  --primary-foreground: 222 47% 11%;
+  --secondary: 217 33% 17%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 217 33% 17%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 350 89% 60%;
+  --destructive-foreground: 210 40% 98%;
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply font-sans antialiased bg-background text-foreground; }
+  h1, h2, h3, h4, h5, h6 { @apply font-serif; }
+}
+
+.verdict-lead { @apply text-verdict-lead border-verdict-lead/30 bg-verdict-lead/10; }
+.verdict-delegate { @apply text-verdict-delegate border-verdict-delegate/30 bg-verdict-delegate/10; }
+.verdict-partner { @apply text-verdict-partner border-verdict-partner/30 bg-verdict-partner/10; }
+.verdict-publish { @apply text-verdict-publish border-verdict-publish/30 bg-verdict-publish/10; }
+.verdict-park { @apply text-verdict-park border-verdict-park/30 bg-verdict-park/10; }
+.verdict-kill { @apply text-verdict-kill border-verdict-kill/30 bg-verdict-kill/10; }
+
+.verdict-bg-lead { @apply bg-verdict-lead text-background; }
+.verdict-bg-delegate { @apply bg-verdict-delegate text-white; }
+.verdict-bg-partner { @apply bg-verdict-partner text-white; }
+.verdict-bg-publish { @apply bg-verdict-publish text-background; }
+.verdict-bg-park { @apply bg-verdict-park text-white; }
+.verdict-bg-kill { @apply bg-verdict-kill text-white; }
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

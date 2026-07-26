@@ -3,13 +3,23 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Portfolio Pulse API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: projects
+    description: Portfolio project operations
+  - name: checkins
+    description: Project check-in operations
+  - name: briefs
+    description: Daily pulse brief operations
+  - name: dashboard
+    description: Dashboard summary operations
+  - name: openai
+    description: OpenAI AI chat operations
 paths:
   /healthz:
     get:
@@ -24,6 +34,362 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      summary: List all portfolio projects
+      responses:
+        "200":
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Create a project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectInput"
+      responses:
+        "201":
+          description: Created project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+  /projects/{id}:
+    get:
+      operationId: getProject
+      tags: [projects]
+      summary: Get a project with its recent check-ins
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Project with check-ins
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectWithCheckins"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+    patch:
+      operationId: updateProject
+      tags: [projects]
+      summary: Update a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectUpdate"
+      responses:
+        "200":
+          description: Updated project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+    delete:
+      operationId: deleteProject
+      tags: [projects]
+      summary: Delete a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+  /projects/{id}/checkins:
+    post:
+      operationId: createCheckin
+      tags: [checkins]
+      summary: Add a quick check-in to a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckinInput"
+      responses:
+        "201":
+          description: Created check-in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Checkin"
+        "404":
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+  /checkins/recent:
+    get:
+      operationId: listRecentCheckins
+      tags: [checkins]
+      summary: Recent check-ins across all projects (activity feed)
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recent check-ins with project names
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CheckinWithProject"
+  /briefs:
+    get:
+      operationId: listBriefs
+      tags: [briefs]
+      summary: List past daily briefs (newest first)
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of briefs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Brief"
+  /briefs/today:
+    get:
+      operationId: getTodayBrief
+      tags: [briefs]
+      summary: Get today's brief if it exists
+      responses:
+        "200":
+          description: Today's brief
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Brief"
+        "404":
+          description: No brief generated today yet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+  /briefs/generate:
+    post:
+      operationId: generateBrief
+      tags: [briefs]
+      summary: Generate today's daily pulse brief (AI text + podcast audio)
+      description: Generates the brief text with AI, then synthesizes podcast audio. May take up to a minute.
+      responses:
+        "200":
+          description: Generated brief
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Brief"
+  /briefs/{id}/audio:
+    get:
+      operationId: getBriefAudio
+      tags: [briefs]
+      summary: Stream the podcast audio for a brief
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: MP3 audio
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Portfolio scoreboard - counts, momentum, staleness, active bets
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /openai/conversations:
+    get:
+      operationId: listOpenaiConversations
+      tags: [openai]
+      summary: List all conversations
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiConversation"
+    post:
+      operationId: createOpenaiConversation
+      tags: [openai]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenaiConversationInput"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversation"
+  /openai/conversations/{id}:
+    get:
+      operationId: getOpenaiConversation
+      tags: [openai]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+    delete:
+      operationId: deleteOpenaiConversation
+      tags: [openai]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+  /openai/conversations/{id}/messages:
+    get:
+      operationId: listOpenaiMessages
+      tags: [openai]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiMessage"
+    post:
+      operationId: sendOpenaiMessage
+      tags: [openai]
+      summary: Send a text message and receive a streaming text response
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenaiMessageInput"
+      responses:
+        "200":
+          description: SSE stream of assistant text chunks
+          content:
+            text/event-stream: {}
 components:
   schemas:
     HealthStatus:
@@ -33,4 +399,395 @@ components:
           type: string
       required:
         - status
-
+    ApiErrorMessage:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        category:
+          type: string
+          enum: [work, personal, life]
+        verdict:
+          type: string
+          enum: [lead, delegate, partner, publish, park, kill]
+        status:
+          type: string
+          description: Short free-text status, e.g. "Shipped", "Stalled at 80%"
+        difficulty:
+          type: integer
+          description: 1-10, how hard to advance
+        upside:
+          type: integer
+          description: 1-10, career/life payoff if it works
+        traction:
+          type: integer
+          description: 1-5, current real-world momentum (drives marker size)
+        energy:
+          type: string
+          enum: [drains, neutral, energizes]
+        oneLineTruth:
+          type: string
+          description: The blunt one-line truth about this project
+        nextProofPoint:
+          type: string
+          description: The single next concrete proof point
+        aiRuling:
+          type: string
+          description: Longer AI ruling / rationale for the verdict
+        isActiveBet:
+          type: boolean
+          description: One of the max-three active bets
+        lastCheckinAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - category
+        - verdict
+        - status
+        - difficulty
+        - upside
+        - traction
+        - energy
+        - oneLineTruth
+        - nextProofPoint
+        - aiRuling
+        - isActiveBet
+        - lastCheckinAt
+        - createdAt
+    ProjectInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        category:
+          type: string
+          enum: [work, personal, life]
+        verdict:
+          type: string
+          enum: [lead, delegate, partner, publish, park, kill]
+        status:
+          type: string
+        difficulty:
+          type: integer
+        upside:
+          type: integer
+        traction:
+          type: integer
+        energy:
+          type: string
+          enum: [drains, neutral, energizes]
+        oneLineTruth:
+          type: string
+        nextProofPoint:
+          type: string
+        aiRuling:
+          type: string
+        isActiveBet:
+          type: boolean
+      required:
+        - name
+        - category
+        - verdict
+        - status
+        - difficulty
+        - upside
+        - traction
+        - energy
+        - oneLineTruth
+        - nextProofPoint
+    ProjectUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        category:
+          type: string
+          enum: [work, personal, life]
+        verdict:
+          type: string
+          enum: [lead, delegate, partner, publish, park, kill]
+        status:
+          type: string
+        difficulty:
+          type: integer
+        upside:
+          type: integer
+        traction:
+          type: integer
+        energy:
+          type: string
+          enum: [drains, neutral, energizes]
+        oneLineTruth:
+          type: string
+        nextProofPoint:
+          type: string
+        aiRuling:
+          type: string
+        isActiveBet:
+          type: boolean
+    Checkin:
+      type: object
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        mood:
+          type: string
+          enum: [moved, stalled, blocked, shipped, idea]
+        note:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - mood
+        - note
+        - createdAt
+    CheckinInput:
+      type: object
+      properties:
+        mood:
+          type: string
+          enum: [moved, stalled, blocked, shipped, idea]
+        note:
+          type: string
+      required:
+        - mood
+        - note
+    CheckinWithProject:
+      type: object
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        projectName:
+          type: string
+        mood:
+          type: string
+          enum: [moved, stalled, blocked, shipped, idea]
+        note:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - projectName
+        - mood
+        - note
+        - createdAt
+    ProjectWithCheckins:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        category:
+          type: string
+          enum: [work, personal, life]
+        verdict:
+          type: string
+          enum: [lead, delegate, partner, publish, park, kill]
+        status:
+          type: string
+        difficulty:
+          type: integer
+        upside:
+          type: integer
+        traction:
+          type: integer
+        energy:
+          type: string
+          enum: [drains, neutral, energizes]
+        oneLineTruth:
+          type: string
+        nextProofPoint:
+          type: string
+        aiRuling:
+          type: string
+        isActiveBet:
+          type: boolean
+        lastCheckinAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        checkins:
+          type: array
+          items:
+            $ref: "#/components/schemas/Checkin"
+      required:
+        - id
+        - name
+        - category
+        - verdict
+        - status
+        - difficulty
+        - upside
+        - traction
+        - energy
+        - oneLineTruth
+        - nextProofPoint
+        - aiRuling
+        - isActiveBet
+        - lastCheckinAt
+        - createdAt
+        - checkins
+    Brief:
+      type: object
+      properties:
+        id:
+          type: integer
+        briefDate:
+          type: string
+          description: YYYY-MM-DD date the brief covers
+        headline:
+          type: string
+        content:
+          type: string
+          description: Markdown body of the daily pulse
+        hasAudio:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - briefDate
+        - headline
+        - content
+        - hasAudio
+        - createdAt
+    DashboardSummary:
+      type: object
+      properties:
+        totalProjects:
+          type: integer
+        verdictCounts:
+          type: object
+          properties:
+            lead: { type: integer }
+            delegate: { type: integer }
+            partner: { type: integer }
+            publish: { type: integer }
+            park: { type: integer }
+            kill: { type: integer }
+          required: [lead, delegate, partner, publish, park, kill]
+        activeBets:
+          type: array
+          items:
+            $ref: "#/components/schemas/Project"
+        staleProjects:
+          type: array
+          description: Non-parked, non-killed projects with no check-in in 7+ days
+          items:
+            $ref: "#/components/schemas/Project"
+        checkinsThisWeek:
+          type: integer
+        energyDrains:
+          type: integer
+          description: Count of non-killed projects marked as draining
+      required:
+        - totalProjects
+        - verdictCounts
+        - activeBets
+        - staleProjects
+        - checkinsThisWeek
+        - energyDrains
+    OpenaiConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - createdAt
+    OpenaiMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
+    OpenaiConversationInput:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+    OpenaiMessageInput:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+    OpenaiConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpenaiMessage"
+      required:
+        - id
+        - title
+        - createdAt
+        - messages
+    OpenaiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

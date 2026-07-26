@@ -1,0 +1,1 @@
+- [Portfolio Pulse decisions](portfolio-pulse-decisions.md) — brief audio stored as bytea + served via express route; SSE chat parsed manually; seed verdicts are Charlie-approved editorial content, don't blandify.
