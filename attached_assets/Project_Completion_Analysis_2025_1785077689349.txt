@@ -1,0 +1,298 @@
+﻿Project Completion Analysis
+
+
+Project Inventory
+For each past project, fill out the following:
+
+
+Project Name: Laundry Basket
+Summary
+Problem:
+Many people find it difficult to pull clothes out of the dryer without dropping smaller items on the ground. This is especially true for those with stackable washer/dryer combos.
+
+
+Solution:
+A lightweight attachment that clamps to the open dryer's inside lip, allowing users to scoop clothes out and directly into a laundry basket.
+
+
+Benefits:
+* Makes it easier to pull clothes out of the dryer without dropping smaller items
+* Can be used with most dryers and laundry baskets
+* Adjustable to fit different dryer sizes
+* Lightweight and easy to use
+
+
+Target Market:
+* People who want an easier way to remove clothes from the dryer
+* People with stackable washer/dryer combos
+
+
+Marketing Plan:
+* Create a website and social media presence
+* Partner with influencers and bloggers
+* Offer discounts and promotions
+* Attend trade shows and events
+
+
+Financial Projections:
+* Project $1 million in revenue in the first year
+* Profitable within two years
+* Break even within three years
+
+
+Checklist for Licensing a Product
+* Draft a business plan that outlines the product's target market, marketing strategy, and financial projections
+* Create a prototype of the product
+* Test the product with potential customers
+* Create a marketing plan for the product
+* Compile a list of potential licensing partners
+* Research potential licensing partners to assess their fit with the product
+* Contact potential licensing partners to discuss licensing opportunities
+
+
+Potential Licensing Partners
+* Rubbermaid
+* Sterilite
+* Home Logic (HMS Mfg. Co)
+* InventHelp
+________________
+
+
+"Laundry Lift" Dryer Attachment
+Executive Summary
+A lightweight laundry basket attachment, Laundry Lift allows you to scoop clothes out the dryer and directly into a laundry basket, leaving no small items left behind!
+Mission Statement
+To provide a simple and effective solution that makes it easier for people to do laundry.
+Vision Statement
+To be the leading provider of eco-friendly laundry solutions that make people's lives easier.
+Product Description
+The Laundry Lift is a lightweight, adjustable attachment that clamps to the open dryer's inside lip. It is made of durable plastic and features a scoop-like design that allows users to easily scoop clothes out of the dryer and directly into a laundry basket. The Laundry Lift is adjustable to fit different dryer sizes and is easy to install or remove.
+Target Market
+The Laundry Lift is targeted at people who want an easier way to remove clothes from the dryer, especially those with stackable washer/dryer combos. The target market includes:
+* People who live in small spaces
+* Families with young children
+* Busy professionals
+* Elderly or disabled individuals
+Market Analysis
+The laundry care market is a large and growing industry, with a global market size of over $100 billion. The market is expected to continue to grow in the coming years, driven by factors such as the increasing number of households and the rising demand for convenience.
+Competition
+There are a few existing products on the market that address the problem of removing clothes from the dryer. However, these products are often bulky, expensive, or difficult to use. The Laundry Lift is a unique product that offers a simple, effective, and affordable solution.
+The Laundry Lift's Competitive Advantages:
+* No Installation: Unlike tilt-out hampers or laundry drawers, Laundry Lift is easy to handle and remove.
+* Simplicity: Its key focus is ease of unloading the dryer – a single, specific problem it solves well.
+* Affordability: The concept suggests a potentially lower price point compared to larger-scale solutions.
+* Adaptability: The adjustable nature means fitting a wider range of dryers than one-size-fits-all competitors.
+Marketing Plan
+The marketing plan for the Laundry Lift will focus on reaching the target market through a variety of channels, including:
+* Online advertising
+* Social media marketing
+* Email marketing
+* Public relations
+* Trade shows and events
+
+
+Project Inventory
+
+
+* Initial Spark: What excited you about this idea?
+   * It’s something I actually use every day
+* Resources Invested: (time, money, energy)
+   * Probably about $2000 in prototyping and omg like 150 hours?
+* Progress Made: What did you actually complete?
+   * I have a simple, ugly prototype that still works to this day for its intended purpose. I have a bunch of more consumer-friendly & functioning-but-not-really prototypes that never made it to the selling stage
+* Stopping Point: Where exactly did momentum fade?
+   * Not being happy with the consumer-ready version of the product
+   * Then, saying fuck it but then getting stuck deciding where, how, and who to sell these to
+* Missing Piece: What resource/knowledge/support did you feel you needed?
+   * I was pissed about investing $1500 with an engineer and not getting exactly what I had in mind for the “final” prototype, so I went to smaller engineers and described the problems in hopes to finally get a working model. So, I don’t have the desire to learn or restart the project but I was really starting to get pissed off at CAD/design programming haha
+   * I definitely need to talk to someone with more knowledge about plastics and manufacturing
+   * Probably also need to talk to someone about distribution, warehousing, Amazon selling, etc.
+* Next Steps: What would the next 2-3 concrete actions have been?
+   * I need like 1 week someone who knows what they’re doing and I’m sure I could get a working prototype out the door; I just don’t want to pay for that right now
+   * From there, I’m sure I could figure out how to sell it. Hell, I’m in advertising. I’d really like to contact influencers to sell it, too - but, I have this fear that in its current state it’ll break or something catastrophic
+* Pattern Recognition: What feels similar to other projects?
+   * I purposefully tried not to get hung up on the design/marketing, which I enjoy, but I ended up creating a website anyway - this is a common thing. I’ll do the easy stuff first: branding, design, site, marketing, etc. and then never actually have the core product ready to sell
+
+
+Project Name: Hourly wage app
+Summary
+Create a dating-app-like environment where hourly-waged employees could swipe on jobs around their area. For example - I’m a Starbucks barista with 3 years of experience and I know I’m getting paid $14.75/hr, but down the street a new coffee place just opened up and they have a management position open at $22/hr. I would swipe to auto-apply my resume to that business.
+
+
+Project Inventory
+
+
+* Initial Spark: What excited you about this idea?
+   * Feels like something people could use every day
+* Resources Invested: (time, money, energy)
+   * Eh, maybe like 15 hours total? I got some friends (2 other engineer buddies) involved and we all met like 3 times to talk about getting it done but it sputtered out
+* Progress Made: What did you actually complete?
+   * My friend got a working scrape of Aldi job descriptions along with pay identifiers
+   * I made a UI that showcased how it would’ve worked
+* Stopping Point: Where exactly did momentum fade?
+   * I think we thought it would be too difficult to scrape more sites or that we’d need businesses to opt in and that felt like a lot of work
+   * We never connected the scape tool to the UI, either
+   * We had each other, but we found we’d rather play games together than do this
+* Missing Piece: What resource/knowledge/support did you feel you needed?
+   * Definitely needed knowledge on how to connect more businesses so the tool would be useful outside of 1 grocery store chain
+   * I also have 0 clue how to attach a database to the backend of an app nor do I know how to connect Google Maps to an app
+* Next Steps: What would the next 2-3 concrete actions have been?
+   * Connect the Aldi information to the UI and see if even that was a good fit
+   * From there, start connecting more and more businesses
+   * Expand regions, include more functionality (business ratings, etc.)
+* Pattern Recognition: What feels similar to other projects?
+   * I got distracted and never set timelines/deadlines or held the other guys accountable. We kinda just trailed off and even though I shared some concrete examples of how the app could look we never connected the dots. No one got angry, just kinda faded. That’s similar to stuff I do on my own, so I’m probably to blame here.
+Project Name: Hiring App
+Summary
+Create an app that really simplifies the hiring process both for job seekers and for companies. Different from the hourly wage app, this one was for more senior roles. It’s a fuckin pain to enter in your resume every time you apply for a job, so the idea was to basically copy the “LinkedIn Apply” button but have it be universal and built into a robust system that keeps track of your skills, tenure, experience level, geography, etc. and just auto-apply. It would also be a way to for employers to really scope out talent easily; take all the extra weird designs, language, keywords, etc. out of bullshit resumes and just see some baseline stats for every candidate.
+
+
+Project Inventory
+
+
+* Initial Spark: What excited you about this idea?
+   * My wife and I were on vacation and just got a weird bug to brainstorm and came up with this idea
+* Resources Invested: (time, money, energy)
+   * We spent a whole weekend brainstorming, then probably about 3 weeks after that just putting together some fun little pieces; I think we both knew it wasn’t going anywhere, but it was fun to mess around with designs
+* Progress Made: What did you actually complete?
+   * Libby actually made a mostly working (but blank/no data) UI/UX in Adobe’s UI designer app… I can’t think of the name.
+   * We have a bunch of really smart-looking slides of what this project would’ve been for each type of user
+   * We even made wireframes of what each screen would look like
+* Stopping Point: Where exactly did momentum fade?
+   * Hard to say - I think after Libby got the UI working we just kinda stopped. Maybe we moved or something.
+* Missing Piece: What resource/knowledge/support did you feel you needed?
+   * Neither of us had any knowledge of app design and we knew we would’ve needed to contact a developer and that just wasn’t in our top priorities
+* Next Steps: What would the next 2-3 concrete actions have been?
+   * Turn over the wireframes, examples, and basic project knowledge to a developer to get everything connected
+   * From there, it’s off to the races to get user sign-ups + company opt ins
+* Pattern Recognition: What feels similar to other projects?
+   * We did the fun stuff (design, brainstorming, marketing ideas, business plans, etc.) and didn’t really ever tackle the hardest parts, which for us is app development
+
+
+Project Name: Self-Improvement App
+Summary
+The best part of starting a game is always building your character. Now, there's an app that applies that same min-maxing to your real-life goals. It's where you can find everything you've been putting off, from dance lessons to personal finance workshops. This app connects users with local businesses, creating a marketplace where you can pick up a new skill or improve an old one. Businesses gain exposure and clientele, while users get practical steps to self-improvement – it's a win-win, driving revenue from both ends in a way that's never been done before.
+
+
+Project Inventory
+
+
+* Initial Spark: What excited you about this idea?
+   * I think it’s something I would use every day, if not multiple times a week
+* Resources Invested: (time, money, energy)
+   * Years daydreaming about it haha but not literally, probably realistically 40 hours and maybe like $20/mo on some AI platforms to ping it about ideas
+* Progress Made: What did you actually complete?
+   * I made a quiz app that was supposed to be a test/entry-point to getting this bigger project done
+* Stopping Point: Where exactly did momentum fade?
+   * You’re going to hear this again below, but when I couldn’t get the basic version of the quiz app working
+* Missing Piece: What resource/knowledge/support did you feel you needed?
+   * I have absolutely no clue how to plug in real businesses to an app that I’m making - that feels like a few years’ worth of work
+   * I’m not an app developer and need to rely on English-language-programming software like AI
+* Next Steps: What would the next 2-3 concrete actions have been?
+   * Get the quiz app to a solid state, shop it around, then I guess try to get funding for the larger app? Not sure. I definitely wanted a partner for this one
+* Pattern Recognition: What feels similar to other projects?
+   * I still think it’s a cool idea, but it feels “unattainable” unless I like quit my job and focus 100% on it. AI really changed my mindset, but then the endless wave of setbacks had this one ending up in the “maybe in a different universe” kind of grave
+
+
+Project Name: Quiz App
+Summary
+Everything from the self-improvement app BUT… for now, we just want to build the quiz that measures where you are in the journey for the app. This is the first step to building the foundation for connecting you to a business that can help improve yourself, and this standalone app will help showcase the tech & features.
+
+
+Quiz App First Step:
+Imagine an app that's like a personal coach in your pocket, but instead of generic advice, it starts with a clever quiz that truly understands you. This isn't just any quiz – it's a deep dive into who you are and where you stand in key life skills, from your physical fitness to your knack for learning new things. By simply answering questions, you get a personalized map of your strengths and also your areas to grow, like a D&D character sheet for real life. Whether it's boosting your confidence, learning a new language, or getting in shape, this app pinpoints exactly where you should start and how to get to where you want to be. It's not just about self-improvement; it's about self-discovery, tailored specifically to you.
+
+
+Project Inventory
+
+
+* Initial Spark: What excited you about this idea?
+   * It felt like an easier entry point to the broader/better idea of the self-improvement app (see above)
+* Resources Invested: (time, money, energy)
+* Progress Made: What did you actually complete?
+* Stopping Point: Where exactly did momentum fade?
+   * Basically when the quiz app kept breaking and I couldn’t get it look (visually) like I thought it should. But, the app worked? Like, it was pretty cool and had some opportunity to be something bigger but I got too frustrated with multiple things: Claude’s limitations for the $20/mo tier, the programming language kept changing, and then things kept breaking. We kept taking 1 step forward and like 4 steps back just triaging errors and issues. That really took the wind out of my sails for the smaller version of this app, so it basically killed the idea of getting this app out the door anytime soon
+   * I also needed motivation from friends and they saw the app, said, “oh yeah that’s kinda cool” and that was it - that kinda de-motivated me even though it shouldn’t have
+* Missing Piece: What resource/knowledge/support did you feel you needed?
+   * Just way more time and patience… and likely more knowledge of coding language, or at least standard best practices for setup and QA
+   * Definitely needed more knowledge around app design - that’s where things kept breaking
+* Next Steps: What would the next 2-3 concrete actions have been?
+   * Get the app to a solid, working state again and begin re-designing it so it’s much more user friendly
+   * From there, tweaking it to be more robust and copy the best practices of other popular quizzes, self-improvement apps, top gaming apps, etc.
+* Pattern Recognition: What feels similar to other projects?
+   * I gave up even after creating something that people were at least initially impressed with. I guess I was satisfied with learning something new and that was enough? That happened with the laundry basket, too. I learned how to 3D model and use CAD software and then was like, eh, done I guess
+
+
+Pattern Analysis
+
+
+Energy Patterns
+* When does your energy peak during projects?
+   * At the beginning, or close to the beginning where I realize “oh, this is fun to learn about! I think I can actually do this!”
+* What types of tasks maintain your interest longest?
+   * If I’m continuously learning and see results from that increasing knowledge. Like the laundry basket was cool because I got to learn how to use a 3D printer, how to design things, then start branding/marketing, etc. so that held my interest creatively for a long time
+* What environments/conditions help you stay focused?
+   * Mental: creative outputs, knowledge inputs, positive relationship feedback (friends or colleagues saying, “hell yeah! That’s a great idea!”)
+   * Physical: above all - time to just fuck around and mess up a ton of times. But, having all the tools I need; big monitors, the right software, 3D printer, comfortable chair, etc.
+   * Financial: low entry cost
+
+
+Stopping Points Analysis
+* Common triggers for losing momentum:
+   * Boredom, not enough positive feedback, perceived as too difficult, or  requires too much time or money
+* Resources frequently needed but missing:
+   * A partner to hold me accountable
+   * A solid, easy plan to focus on the 20% of shit that actually matters
+* Types of support that would have helped:
+   * A business partner that isn’t a friend
+   * Endless cash and time
+
+
+Success Patterns
+* List moments where you pushed through similar obstacles
+   * I really tried with the laundry basket; I had never spent more than like $50 on an idea until then. It was just a moment of “i’m either doing this or i’m not doing this, and this seems to be the best place to invest this money for this project”
+* What was different about those situations?
+   * I recognized my patterns and forced myself to push through. But, I thought money would solve the issue and it was going to take wayyyy more time and energy and that’s what ultimately killed the project
+* What support systems were in place?
+   * I have my poor wife to bounce all these ideas off of lol I probably need a mentor or partner
+
+
+Action Plan Framework
+
+
+Support Systems Needed
+* Knowledge gaps to fill:
+   * Clearly, app development (or, waiting for AI to catch up to make it easier to solve coding problems)
+* Resources to secure:
+   * No idea, maybe like taking a class or something but for some reason I hate structured learning
+* People/roles needed:
+   * Mentor, financial angel
+
+
+Personal Workstyle Optimizations
+* Best time of day for different types of work:
+   * Early morning or late evenings
+* Environment requirements:
+   * My own room/office
+* Communication preferences:
+   * No comms except with partner
+
+
+Next Project Safeguards
+* Early warning signs to watch for:
+   * Eat the frog; do all the hard shit first. If I start doing design or stuff that comes easy to me, then it’s already over mentally
+* Pre-planned solutions for common sticking points:
+   * No idea - need help here
+* Accountability systems to implement:
+   * Not sure - maybe pay someone or get an app? Pomodoro method or something. 80/20 method. There are more I’m sure.
+
+
+Reflections
+* What surprises you about these patterns?
+   * Not much - I know my terrible patterns lol
+* What strengths can you better leverage?
+   * When I was a senior director I was great at my job. I could have hunches about how to tackle tough problems and then just delegate that shit out for someone else to deal with. It was great - I could just be the ideas guy without needing to do all of the hard work, but I could also do that work when needed. I was respected and not seen as lazy, but now that i’m managing myself I can see that I may have been a little more disconnected than I previously thought. Not sure how to turn that into a strength I can use?
+   * I can market the shit out of anything and sell it, but that part feels easy
+   * I need to do a better job at networking; i used to be great at this but lost the skill over the years as we’ve moved around and i’ve taken different roles at smaller companies
+* What systems would make the biggest difference?
+   * Not sure! Would love some help with this analysis!

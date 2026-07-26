@@ -1,0 +1,925 @@
+from docx import Document
+from docx.shared import Inches, Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
+from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
+from docx.enum.section import WD_SECTION
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.enum.style import WD_STYLE_TYPE
+from pathlib import Path
+import textwrap, os, re, json, math
+
+out_dir = Path("/mnt/data")
+docx_path = out_dir / "Charlie_Portfolio_Operating_Review_Master.docx"
+md_path = out_dir / "Charlie_Portfolio_Operating_Review_Master.md"
+
+NAVY = "263343"
+NAVY2 = "334155"
+GOLD = "C79A3B"
+CREAM = "F5F2EA"
+PALE = "EEF1F3"
+WHITE = "FFFFFF"
+SLATE = "5C6875"
+GREEN = "5F7F67"
+RED = "B85A4A"
+BLUE = "58749A"
+PURPLE = "796A9E"
+GRAY = "8B929A"
+BLACK = "1F2933"
+
+def set_cell_shading(cell, fill):
+    tcPr = cell._tc.get_or_add_tcPr()
+    shd = tcPr.find(qn("w:shd"))
+    if shd is None:
+        shd = OxmlElement("w:shd")
+        tcPr.append(shd)
+    shd.set(qn("w:fill"), fill)
+
+def set_cell_border(cell, **kwargs):
+    tc = cell._tc
+    tcPr = tc.get_or_add_tcPr()
+    tcBorders = tcPr.first_child_found_in("w:tcBorders")
+    if tcBorders is None:
+        tcBorders = OxmlElement("w:tcBorders")
+        tcPr.append(tcBorders)
+    for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        if edge in kwargs:
+            edge_data = kwargs.get(edge)
+            tag = "w:{}".format(edge)
+            element = tcBorders.find(qn(tag))
+            if element is None:
+                element = OxmlElement(tag)
+                tcBorders.append(element)
+            for key in ["val", "sz", "space", "color"]:
+                if key in edge_data:
+                    element.set(qn("w:{}".format(key)), str(edge_data[key]))
+
+def set_cell_margins(cell, top=90, start=110, bottom=90, end=110):
+    tc = cell._tc
+    tcPr = tc.get_or_add_tcPr()
+    tcMar = tcPr.first_child_found_in("w:tcMar")
+    if tcMar is None:
+        tcMar = OxmlElement("w:tcMar")
+        tcPr.append(tcMar)
+    for m, v in [("top", top), ("start", start), ("bottom", bottom), ("end", end)]:
+        node = tcMar.find(qn(f"w:{m}"))
+        if node is None:
+            node = OxmlElement(f"w:{m}")
+            tcMar.append(node)
+        node.set(qn("w:w"), str(v))
+        node.set(qn("w:type"), "dxa")
+
+def set_repeat_table_header(row):
+    trPr = row._tr.get_or_add_trPr()
+    tblHeader = OxmlElement("w:tblHeader")
+    tblHeader.set(qn("w:val"), "true")
+    trPr.append(tblHeader)
+
+def set_column_widths(table, widths):
+    for row in table.rows:
+        for idx, width in enumerate(widths):
+            if idx < len(row.cells):
+                row.cells[idx].width = Inches(width)
+
+def add_run(paragraph, text, bold=False, color=None, size=None, italic=False, font="Aptos"):
+    run = paragraph.add_run(text)
+    run.bold = bold
+    run.italic = italic
+    run.font.name = font
+    if color:
+        run.font.color.rgb = RGBColor.from_string(color)
+    if size:
+        run.font.size = Pt(size)
+    return run
+
+def format_paragraph(p, before=0, after=6, line=1.08):
+    pf = p.paragraph_format
+    pf.space_before = Pt(before)
+    pf.space_after = Pt(after)
+    pf.line_spacing = line
+
+def add_heading_bar(doc, text, level=1, subtitle=None):
+    p = doc.add_paragraph()
+    format_paragraph(p, before=10 if level == 1 else 6, after=6)
+    if level == 1:
+        p.style = doc.styles["TitleBar"]
+    else:
+        p.style = doc.styles["HeadingBar2"]
+    add_run(p, text.upper(), bold=True, color=WHITE, size=14 if level == 1 else 11)
+    if subtitle:
+        p2 = doc.add_paragraph()
+        p2.style = doc.styles["SmallNote"]
+        add_run(p2, subtitle, italic=True, color=SLATE, size=9)
+    return p
+
+def add_prompt_box(doc, label, prompt, height_lines=3):
+    table = doc.add_table(rows=2, cols=1)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table.autofit = True
+    c1, c2 = table.cell(0,0), table.cell(1,0)
+    set_cell_shading(c1, NAVY2)
+    set_cell_shading(c2, PALE)
+    for c in (c1,c2):
+        set_cell_margins(c, top=90, start=130, bottom=90, end=130)
+        set_cell_border(c, top={"val":"single","sz":"6","color":"D1D5DB"},
+                           bottom={"val":"single","sz":"6","color":"D1D5DB"},
+                           left={"val":"single","sz":"6","color":"D1D5DB"},
+                           right={"val":"single","sz":"6","color":"D1D5DB"})
+    p = c1.paragraphs[0]
+    add_run(p, label.upper(), bold=True, color=WHITE, size=9)
+    p2 = c2.paragraphs[0]
+    add_run(p2, prompt, color=SLATE, size=9, italic=True)
+    for _ in range(max(0, height_lines-1)):
+        c2.add_paragraph(" ")
+    doc.add_paragraph().paragraph_format.space_after = Pt(0)
+    return table
+
+def add_bullets(doc, items, level=0, font_size=9.5, color=BLACK):
+    for item in items:
+        p = doc.add_paragraph(style="List Bullet" if level == 0 else "List Bullet 2")
+        format_paragraph(p, after=2)
+        if isinstance(item, tuple):
+            lead, rest = item
+            add_run(p, lead, bold=True, color=color, size=font_size)
+            add_run(p, rest, color=color, size=font_size)
+        else:
+            add_run(p, item, color=color, size=font_size)
+    return
+
+def add_numbered(doc, items):
+    for item in items:
+        p = doc.add_paragraph(style="List Number")
+        format_paragraph(p, after=3)
+        add_run(p, item, size=9.5)
+
+# ---------------- Content ----------------
+
+work_projects = [
+    ("Workflow Optimizer + Automation Intake + AI Prioritization", "Career flagship / portfolio operating system"),
+    ("Workforce Transformation / Product Decision Operating Model", "Executive decision rights, governance, and portfolio influence"),
+    ("NA North Star", "Executive dashboard and enterprise decision support"),
+    ("Project Tiger", "Competitive intelligence prototype and reusable prompt pattern"),
+    ("BCL / L'Oréal Output Model", "Complexity-based scoping and commercial model"),
+    ("Client Workflow Imports: BMS, AT&T, AMEX, Netflix, Volvo, PepsiCo", "Proof points for AI-enabled capacity release"),
+    ("App-to-Production Playbook", "Governed path from prototype to secure production"),
+    ("Amazon XCM / MCP Reference Architecture", "Enterprise client-specific data and AI integration"),
+    ("Gemini Enterprise Pilot", "Google partnership and enterprise-stack evaluation"),
+    ("Copilot Premium + Model Data Governance POV", "Enterprise security and model-selection guidance"),
+    ("Omni AI Enablement / Champions", "Adoption, training, and change management"),
+    ("OMD EMEA AI Coach", "Global enablement pattern"),
+    ("Video Creative Genome", "Creative AI investment and capability POV"),
+    ("Business Response Agent", "RFI/RFP acceleration opportunity"),
+    ("Advanced Automation & AI Team Proposal", "Team structure, budget, and operating model"),
+    ("Staffing Calculator", "Demand, capacity release, and workforce linkage"),
+]
+
+personal_projects = [
+    ("REROLL IRL", "Gamified self-discovery and local-life activation"),
+    ("Main Quest", "Annual goals / bucket-list tracker"),
+    ("Hudson Valley Consulting Group", "Productized consulting and potential enterprise advisory"),
+    ("Shepherd & Locke", "Board-game café / community dream"),
+    ("The Predictive Model / The Alignment Problem", "Developed science-fiction IP and story bible"),
+    ("TidyBasket / Laundry Lift", "Physical product with working prototype"),
+    ("Music / V-Drums", "Creative practice and identity"),
+    ("Local Friendship & Community", "Golf, concerts, pub friends, families, and local belonging"),
+    ("Health / Energy / Physical Capacity", "Fitness, sleep, movement, and readiness for another child"),
+    ("Marriage / Family Momentum", "Shared fun, travel, connection, and support for Libby"),
+    ("Home / Location Decision", "Whether to improve, tolerate, or leave the current house/area"),
+    ("Travel & Experiences", "More movement, novelty, and family memories"),
+]
+
+deep_fields = [
+    ("The actual problem", "Whose problem is this, and how painful/frequent is it?"),
+    ("Desired outcome", "What does 'done enough' look like? Be concrete."),
+    ("Current proof", "What exists now: users, adoption, revenue, prototype, endorsements, metrics, assets?"),
+    ("Audience / buyer", "Who specifically should use, fund, approve, share, or care about this?"),
+    ("Career or life leverage", "What does success unlock that matters beyond the project itself?"),
+    ("The hard 20%", "What ugly, boring, political, technical, sales, or distribution work remains?"),
+    ("Dependencies", "Which people, teams, vendors, or approvals can stall this?"),
+    ("Delegation plan", "What should Charlie direct, and what should someone else execute?"),
+    ("Next proof point", "What is the smallest credible test that reduces uncertainty?"),
+    ("Kill criteria", "What evidence or deadline would make us stop without reopening the debate?"),
+]
+
+# ---------------- Markdown ----------------
+
+md = []
+md.append("# CHARLIE'S PORTFOLIO OPERATING REVIEW")
+md.append("## Master intake document + analysis prompt for Claude/Fable or another advanced model")
+md.append("")
+md.append("> **Purpose:** turn a large body of professional work, personal projects, dormant ideas, and life priorities into a decision-grade portfolio: what to lead, publish, delegate, merge, park, or kill.")
+md.append("")
+md.append("## How to use this")
+md.extend([
+    "1. Complete the **Frame** and the **Fast Pass** for everything. Do not overthink it.",
+    "2. Select only **5–8 items** for the Deep Dive.",
+    "3. Attach the actual evidence: decks, screenshots, links, metrics, prototypes, feedback, and rough notes.",
+    "4. Paste this entire document and the supporting files into the model.",
+    "5. Do not start another project until the model returns a ranked portfolio and you choose the top three active bets.",
+])
+md.append("")
+md.append("## Non-negotiable decision rules")
+for rule in [
+    "At most **three active bets** at once: one career bet, one life/community bet, and one creative or commercial bet.",
+    "Every active item needs a named audience, next proof point, owner, deadline, and distribution path.",
+    "A project that depends on Charlie becoming a full-time coder is not a plan; it requires delegation, a partner, or a kill/park decision.",
+    "Career work must create visible evidence for executive scope, compensation, decision rights, or team ownership—not merely more workload.",
+    "Personal technology must improve weekly life. A beautiful app Charlie does not use is not shipped; it is a prototype.",
+    "Health, marriage, family, friendship, and community are portfolio outcomes—not side quests that must be monetized.",
+])
+md.append("")
+md.append("# PART A — INSTRUCTIONS TO THE MODEL")
+md.append("""
+You are acting as my **Portfolio Strategist, Executive Career Architect, and ruthless operating partner**. I am giving you a year-plus of professional work, personal projects, dormant ideas, and life priorities. Your job is not to praise the volume. Your job is to identify the few things that deserve my time, show me the connective tissue, and turn them into a practical operating plan.
+
+Calibrate to me: I am a strategist, marketer, product thinker, storyteller, and connector. I can prototype and learn technical tools, but my best work happens when I frame the problem, create the model, persuade stakeholders, and direct execution. My failure mode is doing the interesting 80%—concept, design, branding, prototype, narrative—then fading at the hard 20%: engineering, distribution, maintenance, political follow-through, adoption, or repetitive operations.
+
+Be direct. Commit to recommendations. Do not give me a menu of equally weighted possibilities. Do not advise me to “find balance” without specifying what gets removed. Separate facts from inference. When evidence is weak, say so.
+
+## Required output — exactly in this order
+
+### 1. Brutal one-page verdict
+Tell me:
+- what phase of my career/life I am actually in;
+- the three most important truths I am avoiding;
+- the single sentence that should guide the next 12 months;
+- the three active bets I should carry, and everything that must pause to make room.
+
+### 2. Visual portfolio board
+Render a clear visual-first board plotting every item:
+- **X-axis:** difficulty for *me* to advance, including politics, coding, dependency, adoption, time, and emotional drag;
+- **Y-axis:** total upside across career, money, life quality, community, creative fulfillment, and strategic leverage;
+- **Color:** Do / Delegate or Partner / Park / Kill;
+- **Marker size:** evidence or traction already earned.
+
+Provide the backing table with 0–100 scores for:
+- upside;
+- difficulty;
+- time to first proof;
+- energy;
+- strategic fit;
+- visible career leverage;
+- economic upside;
+- community/life benefit;
+- reuse of existing assets;
+- dependency risk;
+- confidence in the rating.
+
+### 3. Capability map and red thread
+Group the portfolio by capability—not work versus personal. Identify:
+- the recurring capabilities I have genuinely proven;
+- where I am over-invested;
+- the capabilities I avoid or need to hire;
+- the strongest bridges between projects;
+- a concise career identity I can say to an executive without sounding like “the AI guy.”
+
+### 4. Shortcoming audit
+For every stalled, low-adoption, or unpublished item, diagnose the primary failure:
+A. execution/engineering gap  
+B. audience or distribution gap  
+C. packaging/merchandising gap  
+D. accountability/ownership gap  
+E. dependency/political gap  
+F. genuine misalignment  
+G. easy-80/hard-20 avoidance
+
+Then name the **one structural operating change** that would rescue the most value across the portfolio.
+
+### 5. Career acceleration plan
+Build a specific path from my current role and compensation to executive scope and $300K+:
+- which work should become my flagship;
+- what evidence leadership needs to see;
+- what I should stop owning;
+- which team/decision rights I should ask for;
+- how to merchandise impact without looking self-promotional;
+- the promotion narrative, title territory, and compensation case;
+- the next three executive conversations and the concrete ask in each.
+
+### 6. Personal portfolio plan
+Treat these as real outcomes:
+- local friendships and community;
+- physical energy and health;
+- marriage/family momentum;
+- travel and experiences;
+- home/location decision;
+- creative practice.
+
+Do not solve these by inventing another app unless the app is clearly the lowest-friction route. Give me weekly behaviors, social commitments, and decision deadlines.
+
+### 7. Project decisions
+For every project, issue one verdict:
+- **LEAD:** Charlie should remain the visible architect/owner.
+- **DELEGATE:** keep strategic control; assign execution and maintenance.
+- **PARTNER:** only viable with a named complementary operator.
+- **MERGE:** fold into another project or narrative.
+- **PUBLISH:** package the existing work; do not build more first.
+- **PARK:** preserve assets, set a revisit trigger.
+- **KILL:** close it and explain why.
+
+For anything not killed, define the next proof point, owner, deadline, and maximum additional investment before reevaluation.
+
+### 8. Packaging and publishing plan
+Identify the reusable intellectual property already present:
+- frameworks;
+- scoring models;
+- operating models;
+- playbooks;
+- case studies;
+- prototypes;
+- talks;
+- articles;
+- executive one-sheets;
+- public portfolio pieces.
+
+Specify what can be shared publicly, internally, or only as a sanitized case study. Prioritize assets that compound both reputation and opportunity.
+
+### 9. 90-day operating plan
+Give me:
+- one career bet;
+- one community/life bet;
+- one creative/commercial bet;
+- weekly milestones;
+- delegated tasks and budget;
+- a 30-minute weekly portfolio review;
+- kill gates;
+- a visible scoreboard.
+
+End with the **first seven days**, including exact first moves and who I need to contact.
+
+### 10. The anti-plan
+List the tempting work I am most likely to do instead—redesigning, adding features, researching tools, creating a new brand, or reopening dead decisions—and tell me what to do when I catch myself doing it.
+""".strip())
+md.append("")
+md.append("# PART B — THE FRAME")
+frame_prompts = [
+    ("12-month success", "Career, compensation, family readiness, health, friendships, community, travel, home, and creative fulfillment."),
+    ("3-year direction", "What role, lifestyle, location, family setup, and identity do I want?"),
+    ("Current frustration", "What feels stuck, draining, politically risky, lonely, or scattered?"),
+    ("Real constraints", "Hours/week, budget, childcare, work intensity, health, location, confidentiality, and energy."),
+    ("Non-negotiables", "What will I not do—even if it might make money?"),
+    ("Tradeoffs I accept", "What am I willing to pause, delegate, spend, or disappoint people on?"),
+    ("Decision deadline", "By what date do I need a clear portfolio and 90-day plan?"),
+]
+for label, prompt in frame_prompts:
+    md.append(f"### {label}")
+    md.append(f"[{prompt}]")
+    md.append("")
+md.append("# PART C — FAST PASS INVENTORY")
+md.append("Use 1–5 ratings. One honest sentence beats a polished paragraph.")
+md.append("")
+md.append("| Project / priority | Status | Energy | Upside | Difficulty | Evidence | Mine? | Desired verdict | One-line truth |")
+md.append("|---|---:|---:|---:|---:|---:|---:|---|---|")
+for name, desc in work_projects + personal_projects:
+    md.append(f"| **{name}** — {desc} | [1–5] | [1–5] | [1–5] | [1–5] | [1–5] | [1–5] | [Lead/Delegate/Partner/Merge/Publish/Park/Kill] | [Private truth] |")
+md.append("")
+md.append("# PART D — DEEP DIVE (COPY FOR ONLY 5–8 ITEMS)")
+md.append("## Project: [NAME]")
+for label, prompt in deep_fields:
+    md.append(f"### {label}")
+    md.append(f"[{prompt}]")
+md.append("")
+md.append("# PART E — CAREER EVIDENCE LEDGER")
+md.append("""
+For each career claim, add the proof. Use numbers when possible.
+
+| Claim / contribution | Evidence | Who knows? | Business impact | My role | Next evidence needed |
+|---|---|---|---|---|---|
+| [Example: architected the governed intake and prioritization system] | [prototype, deck, adoption, email, metric] | [names/levels] | [$, hours, risk, speed, adoption] | [architect/operator/connector] | [what closes the case] |
+""".strip())
+md.append("")
+md.append("# PART F — LIFE PORTFOLIO")
+for label, prompt in [
+    ("Friendship & community", "Who do I want around me? What recurring places, leagues, groups, or hosting rituals could create repeated contact?"),
+    ("Health & energy", "What currently reduces my capacity? What minimum weekly standard makes everything else easier?"),
+    ("Marriage & family", "What would make Libby and me feel less stuck and more like a team this quarter?"),
+    ("Home & location", "What is the decision: improve, tolerate for a defined period, or prepare to move? What evidence and date decide it?"),
+    ("Travel & novelty", "What experiences should be booked rather than endlessly discussed?"),
+    ("Creative identity", "What should remain play, with no monetization or productivity requirement?"),
+]:
+    md.append(f"## {label}")
+    md.append(f"[{prompt}]")
+    md.append("")
+md.append("# PART G — PORTFOLIO RULES & ACCOUNTABILITY")
+md.append("""
+Complete these before analysis:
+- Maximum active bets: [3 recommended]
+- Weekly side-project hours: [ ]
+- 90-day cash budget: $[ ]
+- Paid operator/accountability budget: $[ ]
+- Weekly review day/time: [ ]
+- Person who sees the scoreboard: [ ]
+- Consequence when a milestone slips twice: [delegate / reduce scope / park / kill]
+- No-new-project rule until: [date or milestone]
+""".strip())
+md.append("")
+md.append("# PART H — SUPPORTING EVIDENCE")
+md.append("""
+Attach or link:
+- screenshots and live URLs;
+- project decks and strategy documents;
+- adoption, usage, savings, revenue, or time metrics;
+- stakeholder praise and criticism;
+- unfinished drafts;
+- contracts, budgets, or quotes;
+- a list of people who could sponsor, execute, buy, or partner;
+- anything you are embarrassed is unfinished.
+""".strip())
+md.append("")
+md.append("# PART I — FINAL QUESTIONS")
+for q in [
+    "What should I walk away from, permanently?",
+    "What is the highest-leverage thing I have already built but failed to package?",
+    "Which project is secretly a feature of another project?",
+    "What am I calling a motivation problem that is actually an ownership or system-design problem?",
+    "What would an executive sponsor say is missing from my promotion case?",
+    "What should I do for friendship and community that has nothing to do with technology?",
+    "Where should I spend money to buy speed or accountability?",
+    "What is the most likely way I sabotage the 90-day plan?",
+]:
+    md.append(f"- {q}")
+md.append("")
+md.append("---")
+md.append("**End of master intake. Do not ask broad discovery questions. Make reasonable assumptions, label them, and deliver the required decisions.**")
+
+md_text = "\n".join(md)
+md_path.write_text(md_text, encoding="utf-8")
+
+# ---------------- DOCX ----------------
+
+doc = Document()
+section = doc.sections[0]
+section.top_margin = Inches(0.55)
+section.bottom_margin = Inches(0.55)
+section.left_margin = Inches(0.65)
+section.right_margin = Inches(0.65)
+
+styles = doc.styles
+styles["Normal"].font.name = "Aptos"
+styles["Normal"].font.size = Pt(9.5)
+styles["Normal"].paragraph_format.space_after = Pt(4)
+styles["Normal"].paragraph_format.line_spacing = 1.07
+
+for name, size, bold, color, fill in [
+    ("TitleBar", 14, True, WHITE, NAVY),
+    ("HeadingBar2", 11, True, WHITE, NAVY2),
+]:
+    if name not in [s.name for s in styles]:
+        st = styles.add_style(name, WD_STYLE_TYPE.PARAGRAPH)
+    else:
+        st = styles[name]
+    st.font.name = "Aptos Display"
+    st.font.size = Pt(size)
+    st.font.bold = bold
+    st.font.color.rgb = RGBColor.from_string(color)
+    st.paragraph_format.space_before = Pt(0)
+    st.paragraph_format.space_after = Pt(0)
+    st.paragraph_format.left_indent = Pt(6)
+    st.paragraph_format.right_indent = Pt(6)
+    pPr = st._element.get_or_add_pPr()
+    shd = OxmlElement("w:shd")
+    shd.set(qn("w:fill"), fill)
+    pPr.append(shd)
+
+if "SmallNote" not in [s.name for s in styles]:
+    st = styles.add_style("SmallNote", WD_STYLE_TYPE.PARAGRAPH)
+else:
+    st = styles["SmallNote"]
+st.font.name = "Aptos"
+st.font.size = Pt(8.5)
+st.font.color.rgb = RGBColor.from_string(SLATE)
+st.paragraph_format.space_after = Pt(4)
+
+# Header/footer
+header = section.header
+hp = header.paragraphs[0]
+hp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+add_run(hp, "CHARLIE DICKERSON  /  PORTFOLIO OPERATING REVIEW", bold=True, color=SLATE, size=7.5)
+
+footer = section.footer
+fp = footer.paragraphs[0]
+fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+add_run(fp, "Master intake + analysis prompt  |  v2.0  |  July 2026", color=SLATE, size=7.5)
+
+# Title page
+p = doc.add_paragraph()
+format_paragraph(p, before=18, after=4)
+add_run(p, "PORTFOLIO", bold=True, color=NAVY, size=33, font="Aptos Display")
+p2 = doc.add_paragraph()
+format_paragraph(p2, after=12)
+add_run(p2, "OPERATING REVIEW", bold=True, color=GOLD, size=33, font="Aptos Display")
+
+p = doc.add_paragraph()
+format_paragraph(p, after=12)
+add_run(p, "Master intake document + analysis prompt", bold=True, color=NAVY2, size=15)
+add_run(p, "\nfor Claude/Fable or another advanced model", color=SLATE, size=11)
+
+# Hero box
+hero = doc.add_table(rows=1, cols=1)
+hero.alignment = WD_TABLE_ALIGNMENT.CENTER
+cell = hero.cell(0,0)
+set_cell_shading(cell, NAVY)
+set_cell_margins(cell, top=220, start=220, bottom=220, end=220)
+p = cell.paragraphs[0]
+add_run(p, "THE JOB", bold=True, color=GOLD, size=10)
+p = cell.add_paragraph()
+add_run(p, "Turn a large body of work, ideas, and life priorities into a decision-grade portfolio:", color=WHITE, size=12)
+p = cell.add_paragraph()
+add_run(p, "what to lead, publish, delegate, merge, park, or kill.", bold=True, color=WHITE, size=16)
+p = cell.add_paragraph()
+add_run(p, "The goal is not more ideas. The goal is focus, leverage, visible proof, and a life that actually improves.", color="DDE4EA", size=10)
+
+doc.add_paragraph()
+stats = doc.add_table(rows=1, cols=4)
+stats.alignment = WD_TABLE_ALIGNMENT.CENTER
+stats.autofit = True
+for i,(big,small) in enumerate([
+    ("3", "MAX ACTIVE BETS"),
+    ("5–8", "DEEP DIVES"),
+    ("90", "DAY OPERATING PLAN"),
+    ("1", "VISIBLE SCOREBOARD"),
+]):
+    c = stats.cell(0,i)
+    set_cell_shading(c, CREAM if i % 2 == 0 else PALE)
+    set_cell_margins(c, top=130, start=80, bottom=130, end=80)
+    set_cell_border(c, top={"val":"single","sz":"8","color":GOLD},
+                       bottom={"val":"single","sz":"4","color":"D1D5DB"},
+                       left={"val":"single","sz":"4","color":"D1D5DB"},
+                       right={"val":"single","sz":"4","color":"D1D5DB"})
+    p = c.paragraphs[0]
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    add_run(p, big, bold=True, color=NAVY, size=20)
+    p = c.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    add_run(p, small, bold=True, color=SLATE, size=7.5)
+
+doc.add_paragraph()
+p = doc.add_paragraph()
+p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+add_run(p, "Fill the fast pass. Go deep only where it matters. Attach evidence. Then let the model make the calls.", italic=True, color=SLATE, size=10)
+
+doc.add_page_break()
+
+add_heading_bar(doc, "How to use this")
+add_numbered(doc, [
+    "Complete the Frame and Fast Pass for everything. Do not polish the answers.",
+    "Choose only 5–8 items for the Deep Dive. More is not better.",
+    "Attach real evidence: links, screenshots, decks, metrics, feedback, prototypes, and ugly drafts.",
+    "Paste this entire document and the supporting files into the model.",
+    "Do not start another project until the model returns a ranked portfolio and you choose the three active bets.",
+])
+
+add_heading_bar(doc, "Non-negotiable decision rules")
+add_bullets(doc, [
+    ("Three active bets maximum. ", "One career bet, one life/community bet, and one creative or commercial bet."),
+    ("No owner + proof + deadline = not active. ", "Every live item needs an audience, next proof point, owner, deadline, and distribution path."),
+    ("Do not make Charlie become a full-time coder. ", "Technical execution requires delegation, a partner, a narrow prototype, or a park/kill decision."),
+    ("Career work must create leverage. ", "Executive scope, compensation, decision rights, team ownership, or visible enterprise impact—not merely more workload."),
+    ("Personal tech must improve weekly life. ", "A beautiful app Charlie does not use is a prototype, not a product."),
+    ("Do not monetize every human need. ", "Health, friendship, family, community, and creative play are valid outcomes on their own."),
+])
+
+add_heading_bar(doc, "Current working hypothesis", subtitle="Prefilled from the material already provided; edit it if it feels wrong.")
+hyp = doc.add_table(rows=4, cols=2)
+hyp.alignment = WD_TABLE_ALIGNMENT.CENTER
+hyp_data = [
+    ("CAREER PHASE", "Shift from high-output prototype builder to enterprise portfolio architect with decision rights, a team, and a visible operating system."),
+    ("PRIMARY FLAGSHIP", "Workflow Optimizer + Intake + Prioritization: the clearest mechanism for turning scattered AI activity into a governed portfolio."),
+    ("PRIMARY BOTTLENECK", "Not ideas or intelligence. Ownership, operational follow-through, dependency management, and merchandising impact at the executive level."),
+    ("PERSONAL RISK", "Trying to solve fatigue, loneliness, and life momentum by building another complicated technology product instead of choosing repeatable real-world behaviors."),
+]
+for r,(a,b) in enumerate(hyp_data):
+    c1,c2 = hyp.cell(r,0), hyp.cell(r,1)
+    set_cell_shading(c1, NAVY2)
+    set_cell_shading(c2, CREAM if r%2==0 else WHITE)
+    for c in (c1,c2):
+        set_cell_margins(c, top=110, start=120, bottom=110, end=120)
+        set_cell_border(c, top={"val":"single","sz":"4","color":"D1D5DB"},
+                           bottom={"val":"single","sz":"4","color":"D1D5DB"},
+                           left={"val":"single","sz":"4","color":"D1D5DB"},
+                           right={"val":"single","sz":"4","color":"D1D5DB"})
+    add_run(c1.paragraphs[0], a, bold=True, color=WHITE, size=8)
+    add_run(c2.paragraphs[0], b, color=BLACK, size=9)
+
+doc.add_page_break()
+
+add_heading_bar(doc, "Part A — Instructions to the model")
+p = doc.add_paragraph()
+format_paragraph(p, after=6)
+add_run(p, "ROLE", bold=True, color=GOLD, size=9)
+add_run(p, "\nYou are my Portfolio Strategist, Executive Career Architect, and ruthless operating partner. I am giving you a year-plus of professional work, personal projects, dormant ideas, and life priorities. Your job is not to praise the volume. Your job is to identify the few things that deserve my time, show me the connective tissue, and turn them into a practical operating plan.", color=BLACK, size=10)
+
+p = doc.add_paragraph()
+add_run(p, "CALIBRATION", bold=True, color=GOLD, size=9)
+add_run(p, "\nI am a strategist, marketer, product thinker, storyteller, and connector. I can prototype and learn technical tools, but my best work happens when I frame the problem, create the model, persuade stakeholders, and direct execution. My failure mode is doing the interesting 80%—concept, design, branding, prototype, narrative—then fading at the hard 20%: engineering, distribution, maintenance, political follow-through, adoption, or repetitive operations.", color=BLACK, size=10)
+
+p = doc.add_paragraph()
+add_run(p, "TONE", bold=True, color=GOLD, size=9)
+add_run(p, "\nBe direct. Commit to recommendations. Do not give me a menu of equally weighted possibilities. Do not advise me to “find balance” without specifying what gets removed. Separate facts from inference. When evidence is weak, say so.", color=BLACK, size=10)
+
+required_sections = [
+    ("1. BRUTAL ONE-PAGE VERDICT", [
+        "What phase of my career and life I am actually in.",
+        "The three most important truths I am avoiding.",
+        "The single sentence that should guide the next 12 months.",
+        "The three active bets I should carry—and what must pause to make room.",
+    ]),
+    ("2. VISUAL PORTFOLIO BOARD", [
+        "Plot every item on Difficulty × Total Upside.",
+        "Color by Do / Delegate or Partner / Park / Kill.",
+        "Size markers by evidence or traction.",
+        "Provide a backing score table (0–100) with confidence ratings.",
+    ]),
+    ("3. CAPABILITY MAP + RED THREAD", [
+        "Group by capability, not work versus personal.",
+        "Proven strengths, over-investment, avoided capabilities, and missing hires.",
+        "Name the bridges between projects.",
+        "Create a career identity that is stronger than “the AI guy.”",
+    ]),
+    ("4. SHORTCOMING AUDIT", [
+        "Diagnose execution, audience, packaging, accountability, dependency, misalignment, or easy-80/hard-20 failure.",
+        "Name the one structural fix that rescues the most value.",
+    ]),
+    ("5. CAREER ACCELERATION PLAN", [
+        "Path to executive scope and $300K+.",
+        "Flagship, evidence, work to stop, decision rights/team ask, and impact merchandising.",
+        "Promotion narrative, title territory, compensation case, and next three executive conversations.",
+    ]),
+    ("6. PERSONAL PORTFOLIO PLAN", [
+        "Friendship/community, health, marriage/family, travel, home/location, and creative practice.",
+        "Use real-world weekly behaviors and deadlines; do not reflexively build an app.",
+    ]),
+    ("7. PROJECT DECISIONS", [
+        "Issue one verdict: Lead, Delegate, Partner, Merge, Publish, Park, or Kill.",
+        "For survivors: next proof point, owner, deadline, and spending cap.",
+    ]),
+    ("8. PACKAGING + PUBLISHING", [
+        "Find reusable IP: frameworks, scoring models, operating models, playbooks, case studies, prototypes, talks, articles, and one-sheets.",
+        "Separate public, internal, and sanitized case-study assets.",
+    ]),
+    ("9. 90-DAY OPERATING PLAN", [
+        "One career bet, one community/life bet, and one creative/commercial bet.",
+        "Weekly milestones, delegated tasks, budget, kill gates, and visible scoreboard.",
+        "End with exact moves for the first seven days.",
+    ]),
+    ("10. THE ANTI-PLAN", [
+        "List the tempting avoidance work: redesigning, adding features, researching tools, rebranding, or reopening dead decisions.",
+        "Tell me what to do when I catch myself doing it.",
+    ]),
+]
+
+for title, bullets in required_sections:
+    table = doc.add_table(rows=1, cols=2)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    c1,c2 = table.cell(0,0),table.cell(0,1)
+    set_cell_shading(c1, NAVY)
+    set_cell_shading(c2, PALE)
+    set_cell_margins(c1, top=100,start=110,bottom=100,end=110)
+    set_cell_margins(c2, top=100,start=110,bottom=100,end=110)
+    add_run(c1.paragraphs[0], title, bold=True, color=WHITE, size=8.5)
+    for i,b in enumerate(bullets):
+        p = c2.paragraphs[0] if i==0 else c2.add_paragraph()
+        p.style = doc.styles["Normal"]
+        add_run(p, "• " + b, color=BLACK, size=8.5)
+    doc.add_paragraph().paragraph_format.space_after = Pt(0)
+
+doc.add_page_break()
+
+add_heading_bar(doc, "Part B — The frame", subtitle="Fill this first. It changes every score and recommendation.")
+for label, prompt in frame_prompts:
+    add_prompt_box(doc, label, prompt, 3 if label not in ("Real constraints","Decision deadline") else 2)
+
+doc.add_page_break()
+
+add_heading_bar(doc, "Part C — Fast pass inventory", subtitle="Use 1–5 ratings. One honest sentence beats a polished paragraph.")
+p = doc.add_paragraph()
+add_run(p, "SCORING KEY: ", bold=True, color=GOLD, size=8.5)
+add_run(p, "Status 1 idea → 5 adopted  |  Energy 1 drains → 5 energizes  |  Upside 1 trivial → 5 transformative  |  Difficulty 1 easy → 5 brutal  |  Evidence 1 belief → 5 proven", color=SLATE, size=8.5)
+
+table = doc.add_table(rows=1, cols=7)
+table.alignment = WD_TABLE_ALIGNMENT.CENTER
+table.autofit = False
+headers = ["Project / priority", "Status", "Energy", "Upside", "Difficulty", "Desired verdict", "Private truth"]
+for i,h in enumerate(headers):
+    c=table.cell(0,i)
+    set_cell_shading(c,NAVY)
+    set_cell_margins(c, top=80,start=70,bottom=80,end=70)
+    add_run(c.paragraphs[0],h.upper(),bold=True,color=WHITE,size=7.2)
+set_repeat_table_header(table.rows[0])
+set_column_widths(table, [2.65,.55,.55,.55,.62,1.05,2.15])
+
+for idx,(name,desc) in enumerate(work_projects):
+    row=table.add_row()
+    vals=[f"{name}\n{desc}","[ ]","[ ]","[ ]","[ ]","[ ]","[One-line truth]"]
+    for j,val in enumerate(vals):
+        c=row.cells[j]
+        set_cell_shading(c, CREAM if idx%2==0 else WHITE)
+        set_cell_margins(c, top=75,start=65,bottom=75,end=65)
+        set_cell_border(c, bottom={"val":"single","sz":"3","color":"D1D5DB"})
+        p=c.paragraphs[0]
+        if j==0:
+            parts=val.split("\n",1)
+            add_run(p,parts[0],bold=True,color=NAVY,size=7.4)
+            if len(parts)>1:
+                add_run(p,"\n"+parts[1],color=SLATE,size=6.8)
+        else:
+            add_run(p,val,color=SLATE,size=7.2)
+        c.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+
+doc.add_paragraph()
+p=doc.add_paragraph()
+add_run(p,"WORK-SIDE GUT CHECK",bold=True,color=GOLD,size=9)
+add_bullets(doc,[
+    "Which 2–3 items actually move my career forward versus keep me busy?",
+    "Where am I the architect versus the named connector?",
+    "What impact am I failing to quantify or merchandise?",
+    "What executive scope, team, title, compensation, or decision rights do I want?",
+],font_size=8.8)
+
+doc.add_page_break()
+
+add_heading_bar(doc, "Part C — Fast pass inventory: personal + life")
+table = doc.add_table(rows=1, cols=7)
+table.alignment = WD_TABLE_ALIGNMENT.CENTER
+table.autofit = False
+for i,h in enumerate(headers):
+    c=table.cell(0,i)
+    set_cell_shading(c,NAVY)
+    set_cell_margins(c, top=80,start=70,bottom=80,end=70)
+    add_run(c.paragraphs[0],h.upper(),bold=True,color=WHITE,size=7.2)
+set_repeat_table_header(table.rows[0])
+set_column_widths(table, [2.65,.55,.55,.55,.62,1.05,2.15])
+
+for idx,(name,desc) in enumerate(personal_projects):
+    row=table.add_row()
+    vals=[f"{name}\n{desc}","[ ]","[ ]","[ ]","[ ]","[ ]","[One-line truth]"]
+    for j,val in enumerate(vals):
+        c=row.cells[j]
+        set_cell_shading(c, PALE if idx%2==0 else WHITE)
+        set_cell_margins(c, top=75,start=65,bottom=75,end=65)
+        set_cell_border(c, bottom={"val":"single","sz":"3","color":"D1D5DB"})
+        p=c.paragraphs[0]
+        if j==0:
+            parts=val.split("\n",1)
+            add_run(p,parts[0],bold=True,color=NAVY,size=7.4)
+            add_run(p,"\n"+parts[1],color=SLATE,size=6.8)
+        else:
+            add_run(p,val,color=SLATE,size=7.2)
+        c.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+
+doc.add_paragraph()
+life_box = doc.add_table(rows=1, cols=1)
+c=life_box.cell(0,0)
+set_cell_shading(c, "FFF7E4")
+set_cell_border(c, top={"val":"single","sz":"8","color":GOLD},bottom={"val":"single","sz":"8","color":GOLD},
+                   left={"val":"single","sz":"8","color":GOLD},right={"val":"single","sz":"8","color":GOLD})
+set_cell_margins(c, top=140,start=150,bottom=140,end=150)
+p=c.paragraphs[0]
+add_run(p,"IMPORTANT: ",bold=True,color=GOLD,size=9)
+add_run(p,"Friendships, health, marriage, home, and travel are not lesser projects. They should be scored on actual life impact—but they should not automatically become software, businesses, or content.",color=BLACK,size=9.5)
+
+doc.add_page_break()
+
+add_heading_bar(doc, "Part D — Deep dive", subtitle="Copy this section for only the 5–8 items that could plausibly survive the audit.")
+add_prompt_box(doc, "Project / priority name", "Use the exact name from the inventory.", 1)
+for label,prompt in deep_fields:
+    add_prompt_box(doc,label,prompt,2)
+
+doc.add_page_break()
+
+add_heading_bar(doc, "Part E — Career evidence ledger", subtitle="The promotion case is built from evidence, not project count.")
+table=doc.add_table(rows=1,cols=6)
+table.alignment=WD_TABLE_ALIGNMENT.CENTER
+headers2=["Claim / contribution","Evidence","Who knows?","Business impact","My role","Next proof needed"]
+for i,h in enumerate(headers2):
+    c=table.cell(0,i)
+    set_cell_shading(c,NAVY)
+    set_cell_margins(c, top=80,start=70,bottom=80,end=70)
+    add_run(c.paragraphs[0],h.upper(),bold=True,color=WHITE,size=7)
+set_repeat_table_header(table.rows[0])
+set_column_widths(table,[1.5,1.45,1.0,1.35,1.0,1.55])
+for r in range(8):
+    row=table.add_row()
+    for j,c in enumerate(row.cells):
+        set_cell_shading(c,CREAM if r%2==0 else WHITE)
+        set_cell_margins(c,top=90,start=70,bottom=180,end=70)
+        add_run(c.paragraphs[0],"[ ]",color=SLATE,size=7.5)
+        set_cell_border(c,bottom={"val":"single","sz":"3","color":"D1D5DB"})
+
+doc.add_paragraph()
+add_heading_bar(doc, "Impact metrics to look for", level=2)
+add_bullets(doc,[
+    "Time saved or capacity released; duplicate work prevented; cycle time reduced.",
+    "Revenue protected, pitch enabled, scope defended, or cost avoided.",
+    "Users, teams, clients, regions, or senior leaders reached.",
+    "Adoption, repeat usage, decision frequency, or number of routed opportunities.",
+    "Risks reduced, governance clarified, or production paths standardized.",
+    "Examples where leadership specifically came to Charlie to frame or resolve the issue.",
+],font_size=8.8)
+
+doc.add_page_break()
+
+add_heading_bar(doc, "Part F — Life portfolio")
+life_sections = [
+    ("FRIENDSHIP & COMMUNITY","Who do I want around me? Which recurring places, leagues, groups, hosting rituals, or parent networks can create repeated contact? What is the weekly minimum?"),
+    ("HEALTH & ENERGY","What reduces capacity now? What minimum weekly standard makes work, parenting, confidence, and another child more viable?"),
+    ("MARRIAGE & FAMILY","What would make Libby and me feel less stuck and more like a team this quarter? What is hers, mine, and ours?"),
+    ("HOME & LOCATION","What is the decision: improve, tolerate for a defined period, or prepare to move? What evidence and date decide it?"),
+    ("TRAVEL & NOVELTY","What should be booked rather than endlessly discussed? What cadence makes life feel larger?"),
+    ("CREATIVE IDENTITY","What should remain play—music, writing, making—with no monetization or productivity requirement?"),
+]
+for label,prompt in life_sections:
+    add_prompt_box(doc,label,prompt,3)
+
+doc.add_page_break()
+
+add_heading_bar(doc, "Part G — Portfolio rules + accountability")
+rules_table=doc.add_table(rows=9,cols=2)
+rules_table.alignment=WD_TABLE_ALIGNMENT.CENTER
+rows=[
+    ("MAXIMUM ACTIVE BETS","3 recommended"),
+    ("WEEKLY SIDE-PROJECT HOURS","[ ]"),
+    ("90-DAY CASH BUDGET","$[ ]"),
+    ("PAID OPERATOR / ACCOUNTABILITY BUDGET","$[ ]"),
+    ("WEEKLY REVIEW DAY + TIME","[ ]"),
+    ("PERSON WHO SEES THE SCOREBOARD","[ ]"),
+    ("WHEN A MILESTONE SLIPS TWICE","[Delegate / reduce scope / park / kill]"),
+    ("NO-NEW-PROJECT RULE UNTIL","[Date or milestone]"),
+    ("REVIEW / RESET DATE","[ ]"),
+]
+for r,(a,b) in enumerate(rows):
+    c1,c2=rules_table.cell(r,0),rules_table.cell(r,1)
+    set_cell_shading(c1,NAVY2)
+    set_cell_shading(c2,CREAM if r%2==0 else WHITE)
+    for c in (c1,c2):
+        set_cell_margins(c,top=105,start=115,bottom=105,end=115)
+        set_cell_border(c,top={"val":"single","sz":"3","color":"D1D5DB"},bottom={"val":"single","sz":"3","color":"D1D5DB"},
+                           left={"val":"single","sz":"3","color":"D1D5DB"},right={"val":"single","sz":"3","color":"D1D5DB"})
+    add_run(c1.paragraphs[0],a,bold=True,color=WHITE,size=8)
+    add_run(c2.paragraphs[0],b,color=SLATE,size=9)
+
+doc.add_paragraph()
+add_heading_bar(doc, "Recommended accountability system", level=2)
+p=doc.add_paragraph()
+add_run(p,"A paid weekly operating partner—not a friend, not an app. ",bold=True,color=NAVY,size=10)
+add_run(p,"Thirty minutes each week. They maintain the scoreboard, chase owners, record decisions, and force a Lead / Delegate / Park / Kill call when work slips. Charlie prepares decisions and directs; the operator handles follow-through.",color=BLACK,size=9.5)
+
+doc.add_page_break()
+
+add_heading_bar(doc, "Part H — Supporting evidence")
+add_bullets(doc,[
+    "Live URLs and screenshots.",
+    "Project decks, operating models, roadmaps, and strategy documents.",
+    "Adoption, usage, savings, revenue, time, risk, or reach metrics.",
+    "Stakeholder praise, criticism, and unanswered asks.",
+    "Unfinished drafts and abandoned prototypes.",
+    "Budgets, quotes, contracts, or cost assumptions.",
+    "People who could sponsor, execute, buy, distribute, or partner.",
+    "Anything embarrassing because it is unfinished—the model needs the real state.",
+],font_size=9.5)
+
+add_heading_bar(doc, "Part I — Final questions")
+questions=[
+    "What should I walk away from permanently?",
+    "What is the highest-leverage thing I already built but failed to package?",
+    "Which project is secretly a feature of another project?",
+    "What am I calling a motivation problem that is actually an ownership or system-design problem?",
+    "What would an executive sponsor say is missing from my promotion case?",
+    "What should I do for friendship and community that has nothing to do with technology?",
+    "Where should I spend money to buy speed or accountability?",
+    "What is the most likely way I sabotage the 90-day plan?",
+]
+add_bullets(doc,questions,font_size=9.5)
+
+# Final page: preflight checklist
+doc.add_page_break()
+add_heading_bar(doc, "Preflight checklist")
+check_items=[
+    "Frame completed with honest constraints and tradeoffs.",
+    "Every project has a Fast Pass rating and private truth.",
+    "Only 5–8 projects selected for Deep Dive.",
+    "Career evidence includes numbers or named stakeholders where possible.",
+    "Life priorities are described as outcomes and behaviors—not automatically as apps.",
+    "Three-active-bet limit accepted.",
+    "Evidence files attached.",
+    "Model instructed to make decisions rather than ask broad discovery questions.",
+]
+for item in check_items:
+    p=doc.add_paragraph()
+    format_paragraph(p,after=8)
+    add_run(p,"☐  ",bold=True,color=GOLD,size=13)
+    add_run(p,item,color=BLACK,size=10)
+
+closing=doc.add_table(rows=1,cols=1)
+c=closing.cell(0,0)
+set_cell_shading(c,NAVY)
+set_cell_margins(c,top=200,start=190,bottom=200,end=190)
+p=c.paragraphs[0]
+p.alignment=WD_ALIGN_PARAGRAPH.CENTER
+add_run(p,"NO MORE PORTFOLIO THEATER.",bold=True,color=GOLD,size=15)
+p=c.add_paragraph()
+p.alignment=WD_ALIGN_PARAGRAPH.CENTER
+add_run(p,"Choose the three bets. Assign owners. Set the proof. Publish the work.",bold=True,color=WHITE,size=12)
+
+doc.save(docx_path)
+print(f"Created: {docx_path}")
+print(f"Created: {md_path}")
