@@ -1,9 +1,6 @@
 import { Router, type IRouter } from "express";
 import { asc, and, eq, isNull, sql } from "drizzle-orm";
-import {
-  createOptionsLineFilter,
-  stripTrailingOptionsLines,
-} from "./options-stream";
+import { createMarkerLineFilter } from "./options-stream";
 import {
   db,
   nlBoards,
@@ -36,6 +33,7 @@ import {
   callLeapJson,
   chatSystem,
   checkinSystem,
+  deletePinAndScrub,
   generateToken,
   interviewSystem,
   loadState,
@@ -52,6 +50,9 @@ import {
 } from "./serialize";
 
 const router: IRouter = Router();
+
+/** Trailing marker lines the chat model may emit; stripped before display. */
+const CHAT_MARKERS = ["ACTIONS:", "OPTIONS:"];
 
 async function findBoard(token: string): Promise<NlBoard | undefined> {
   return db.query.nlBoards.findFirst({ where: eq(nlBoards.token, token) });
@@ -344,36 +345,62 @@ router.post("/nextleap/boards/:token/chat", async (req, res) => {
     });
 
     // Stream while withholding whatever could still turn out to be a trailing
-    // `OPTIONS: [...]` marker (see options-stream.ts) — even when the model
-    // ends the marker with a newline, raw JSON never flashes at the user.
-    const filter = createOptionsLineFilter();
-    let streamedRaw = "";
+    // marker line (see options-stream.ts) — even when the model ends a marker
+    // with a newline, raw JSON never flashes at the user.
+    const filter = createMarkerLineFilter(CHAT_MARKERS);
+    let safeOut = "";
     for await (const chunk of stream) {
       // Breaking out of the loop aborts the upstream request.
       if (clientGone) break;
       const content = chunk.choices[0]?.delta?.content;
       if (!content) continue;
-      streamedRaw += content;
       const safe = filter.push(content);
       if (safe) {
+        safeOut += safe;
         res.write(`data: ${JSON.stringify({ content: safe })}\n\n`);
       }
     }
 
-    const { rest, optionsJson } = filter.finish();
+    const { rest, markers } = filter.finish();
     let options: string[] | null = null;
-    if (optionsJson !== null) {
+    if (markers["OPTIONS:"] !== undefined) {
       try {
-        options = sanitizeOptions(JSON.parse(optionsJson));
+        options = sanitizeOptions(JSON.parse(markers["OPTIONS:"]));
       } catch {
         // Malformed marker: drop it silently rather than show raw JSON.
         options = null;
       }
     }
+    // Board edits the model was asked to make. Chat may only EDIT what
+    // exists: upsertPin with a valid ref, deletePin, touchPin. Everything
+    // else in the op vocabulary (new pins, moves, bet, stat chips,
+    // trajectory, intake) is ignored here — those belong to the interview,
+    // quick-add, and check-in flows. Demo boards never apply anything.
+    let chatOps: Record<string, unknown>[] = [];
+    if (markers["ACTIONS:"] !== undefined && !isDemo && !clientGone) {
+      try {
+        const raw: unknown = JSON.parse(markers["ACTIONS:"]);
+        if (Array.isArray(raw)) {
+          chatOps = raw.filter((o): o is Record<string, unknown> => {
+            if (!o || typeof o !== "object") return false;
+            const op = (o as Record<string, unknown>)["op"];
+            if (op === "deletePin" || op === "touchPin") return true;
+            if (op === "upsertPin") {
+              const ref = Number((o as Record<string, unknown>)["ref"]);
+              return Number.isInteger(ref) && ref > 0;
+            }
+            return false;
+          });
+        }
+      } catch (err) {
+        logger.warn({ err }, "leap chat ACTIONS marker failed, ignoring");
+      }
+    }
     if (rest.trim() && !clientGone && !res.writableEnded) {
       res.write(`data: ${JSON.stringify({ content: rest })}\n\n`);
     }
-    const fullResponse = stripTrailingOptionsLines(streamedRaw).trimEnd();
+    // Persist exactly what the user saw — the filtered stream, markers out.
+    const fullResponse = (safeOut + rest).trimEnd();
 
     if (fullResponse && !isDemo && !clientGone) {
       await db.insert(nlMessages).values({
@@ -401,8 +428,18 @@ router.post("/nextleap/boards/:token/chat", async (req, res) => {
         .set({ updatedAt: new Date() })
         .where(eq(nlBoards.id, board.id));
     }
+    // Apply board edits AFTER persisting the reply: if the model deleted the
+    // very pin this thread hangs off, the FK cascade takes the thread with it
+    // instead of the message insert hitting a dead pinId.
+    let boardChanged = false;
+    if (chatOps.length > 0) {
+      await applyOps(board, chatOps);
+      boardChanged = true;
+    }
     if (!res.writableEnded) {
       if (options) res.write(`data: ${JSON.stringify({ options })}\n\n`);
+      if (boardChanged)
+        res.write(`data: ${JSON.stringify({ boardChanged: true })}\n\n`);
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
     }
@@ -538,29 +575,8 @@ router.delete("/nextleap/boards/:token/pins/:pinId", async (req, res) => {
     return;
   }
   // Chat thread + checklist go with it (FK cascade); moves detach (set null).
-  await db.delete(nlPins).where(eq(nlPins.id, pin.id));
-  // Scrub the id out of sibling related-pin lists and the abandon-bet.
-  const siblings = await db
-    .select()
-    .from(nlPins)
-    .where(eq(nlPins.boardId, board.id));
-  for (const sib of siblings) {
-    const rel = (sib.relatedPinIds as number[] | null) ?? [];
-    if (rel.includes(pin.id))
-      await db
-        .update(nlPins)
-        .set({ relatedPinIds: rel.filter((id) => id !== pin.id) })
-        .where(eq(nlPins.id, sib.id));
-  }
-  const bet = (board.bet ?? null) as Record<string, unknown> | null;
-  const boardPatch: Partial<typeof nlBoards.$inferInsert> = {
-    updatedAt: new Date(),
-  };
-  if (bet && bet["pinId"] === pin.id) {
-    const { pinId: _dropped, ...rest } = bet;
-    boardPatch.bet = rest;
-  }
-  await db.update(nlBoards).set(boardPatch).where(eq(nlBoards.id, board.id));
+  // Sibling related-pin lists and the abandon-bet get scrubbed inside.
+  await deletePinAndScrub(board, pin.id);
   res.status(204).end();
 });
 

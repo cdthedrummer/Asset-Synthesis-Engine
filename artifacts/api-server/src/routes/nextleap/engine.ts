@@ -324,6 +324,12 @@ export async function applyOps(
           if (touched) result.touchedPinIds.push(touched.id);
           break;
         }
+        case "deletePin": {
+          const id = Number(op["id"]);
+          if (!Number.isInteger(id)) break;
+          await deletePinAndScrub(board, id);
+          break;
+        }
         case "intake": {
           const patch: Partial<typeof nlBoards.$inferInsert> = {};
           if (["new", "some", "daily"].includes(String(op["aiFamiliarity"])))
@@ -447,6 +453,45 @@ export async function applyOps(
   return result;
 }
 
+/**
+ * Delete a pin (board-scoped) and clean up everything that pointed at it:
+ * sibling related-pin lists and the abandon-bet's pin link (the bet text
+ * survives). Chat thread + checklist go via FK cascade; moves detach (null).
+ * Used by both the DELETE route and the chat `deletePin` action.
+ */
+export async function deletePinAndScrub(
+  board: NlBoard,
+  pinId: number,
+): Promise<boolean> {
+  const [gone] = await db
+    .delete(nlPins)
+    .where(and(eq(nlPins.id, pinId), eq(nlPins.boardId, board.id)))
+    .returning();
+  if (!gone) return false;
+  const siblings = await db
+    .select()
+    .from(nlPins)
+    .where(eq(nlPins.boardId, board.id));
+  for (const sib of siblings) {
+    const rel = (sib.relatedPinIds as number[] | null) ?? [];
+    if (rel.includes(pinId))
+      await db
+        .update(nlPins)
+        .set({ relatedPinIds: rel.filter((id) => id !== pinId) })
+        .where(eq(nlPins.id, sib.id));
+  }
+  const bet = (board.bet ?? null) as Record<string, unknown> | null;
+  const patch: Partial<typeof nlBoards.$inferInsert> = {
+    updatedAt: new Date(),
+  };
+  if (bet && bet["pinId"] === pinId) {
+    const { pinId: _dropped, ...rest } = bet;
+    patch.bet = rest;
+  }
+  await db.update(nlBoards).set(patch).where(eq(nlBoards.id, board.id));
+  return true;
+}
+
 // ---------------------------------------------------------------------------
 // System prompts
 // ---------------------------------------------------------------------------
@@ -559,7 +604,19 @@ You're in an ongoing thread with ${state.board.name || "the board's owner"} abou
 
 Plain text only — no markdown headings, no bullet cascades. Under 120 words unless you're drafting something for them. ${NO_JARGON}
 
-If your reply ends by asking them to pick between a few concrete paths (by zip vs by city, formal vs casual), put the choices on ONE final line by themselves, exactly like: OPTIONS: ["by zip","by city","whole region"] — 2-4 choices, each under 40 chars, valid JSON, nothing after it. That line is stripped out and becomes tap buttons. Only when a genuine fork exists — never bolt it onto an open question.`;
+If your reply ends by asking them to pick between a few concrete paths (by zip vs by city, formal vs casual), put the choices on ONE final line by themselves, exactly like: OPTIONS: ["by zip","by city","whole region"] — 2-4 choices, each under 40 chars, valid JSON, nothing after it. That line is stripped out and becomes tap buttons. Only when a genuine fork exists — never bolt it onto an open question.
+
+${
+  state.board.kind === "demo"
+    ? `This is a read-only demo board. If they ask you to change anything on it, say demo boards are fixed and they can start their own from the front door. Never emit an ACTIONS line.`
+    : `BOARD EDITS — when they ask you to change the board itself (merge duplicate or overlapping pins, delete one, rename one, fix a number), DO IT, don't redirect them. End your reply with one line by itself, exactly like: ACTIONS: [{"op":"deletePin","id":7}] — a valid JSON array, nothing after it except an optional OPTIONS line last. That line is stripped out and applied to the board. In prose, say plainly what you changed and why, in one or two lines.
+Ops you may emit:
+{"op":"upsertPin","ref":<existing pin id>,"pin":{"title":"...","verdict":"start"|"schedule"|"skip"|"gethelp","verdictWhy":"one blunt sentence","difficulty":1-10,"impact":1-10,"kind":"...","vizData":{...},"detail":{...}?,"verifyYourself":true?}} — rewrite a pin in full (ref is required here; no ref means a new pin, which quick-add owns, not you)
+{"op":"deletePin","id":<pin id>} — take a pin off the board
+{"op":"touchPin","id":<pin id>} — bump a pin to the top because it came up again
+${VIZ_SPEC}
+MERGING duplicates: pick the survivor, upsert it so NOTHING they said is lost — fold the spare facts into its vizData or detail blocks — then deletePin the copies. Never invent numbers. Act only when they've asked or plainly agreed; if it's ambiguous which pins they mean, ask first (OPTIONS line works well for that).`
+}`;
 
   if (scope.move) {
     const m = scope.move;
@@ -592,11 +649,11 @@ This thread is about ONE pin: ${JSON.stringify({
       vizData: p.vizData,
       verifyYourself: p.verifyYourself,
     })}.
-They may argue with the verdict — good. Defend it with the reason it was made. Concede specifics when they bring facts you didn't have; say plainly what fact would flip the verdict. This chat can't rewrite the pin by itself — verdicts move when claims meet evidence. If they bring a real new fact, point them at "Add info" right above this thread to fold it into the pin, or a check-in to re-score the whole board.
+They may argue with the verdict — good. Defend it with the reason it was made. Concede specifics when they bring facts you didn't have; say plainly what fact would flip the verdict. Verdicts move when claims meet evidence, not because they pushed. When a real new fact should change this pin, update it yourself with an ACTIONS upsert (ref ${p.id}); if they want it gone, deletePin it. For a full board re-score, point at a check-in.
 ${p.verifyYourself ? "This pin is verify-yourself territory (legal/license/permit). Point at official sources or a qualified human. Do not play inspector." : ""}`;
   }
 
   return `${base}
 
-This is the board-wide thread. Answer against the whole board — verdicts, trajectory, the bet, what's next. If they ask you to change something, point them at the right motion: quick-add for new items, check-in to re-score, a pin's own thread to argue a verdict.`;
+This is the board-wide thread. Answer against the whole board — verdicts, trajectory, the bet, what's next. Board housekeeping is yours: merging duplicates, deleting dead pins, renaming — do it via ACTIONS when they ask. For brand-new items point them at quick-add; for a full re-score, a check-in.`;
 }

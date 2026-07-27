@@ -1,3 +1,4 @@
 - [Portfolio Pulse decisions](portfolio-pulse-decisions.md) — brief audio stored as bytea + served via express route; SSE chat parsed manually; seed verdicts are Charlie-approved editorial content, don't blandify.
 - [Next Leap taste profile](next-leap-taste.md) — Pinboard won; bespoke infographic pins, no coach persona, ChatGPT-projects model, light restyle owed ("dark mode is for nerds").
+- [Next Leap decisions](next-leap-decisions.md) — chat ACTIONS marker: server-side op allowlist, apply ops after persisting the reply, persist the filtered stream.
 - [Stack gotchas](stack-gotchas.md) — Orval Params-type collision on path+query ops; Tailwind v4 @theme inline doesn't emit raw :root custom props; SSE trailing-marker lines need last-nonempty-line holdback.

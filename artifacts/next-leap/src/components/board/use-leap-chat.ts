@@ -1,10 +1,13 @@
 import React from 'react';
-import { NlMessage } from '@workspace/api-client-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { NlMessage, getGetLeapBoardQueryKey } from '@workspace/api-client-react';
 
 /**
  * Shared chat state + SSE streaming for pin threads and move rep sessions.
  * Callers load history with the matching generated query hook and pass it in.
  * `options` carries tap-to-answer chips for the latest assistant turn.
+ * When the reply carried board edits (merge/delete/rename pins), the server
+ * sends a `boardChanged` event and we refetch the board.
  */
 export function useLeapChat({
   token,
@@ -25,6 +28,7 @@ export function useLeapChat({
   const [error, setError] = React.useState<string | null>(null);
   const [options, setOptions] = React.useState<string[] | null>(null);
   const loadedRef = React.useRef(false);
+  const queryClient = useQueryClient();
 
   React.useEffect(() => {
     if (initialMessages && !loadedRef.current) {
@@ -70,6 +74,7 @@ export function useLeapChat({
       let acc = '';
       let streamError: string | null = null;
       let streamOptions: string[] | null = null;
+      let boardChanged = false;
 
       while (!done) {
         const { value, done: readerDone } = await reader.read();
@@ -82,7 +87,7 @@ export function useLeapChat({
         for (const event of events) {
           for (const line of event.split('\n')) {
             if (!line.startsWith('data: ')) continue;
-            let data: { done?: boolean; content?: string; error?: string; options?: string[] };
+            let data: { done?: boolean; content?: string; error?: string; options?: string[]; boardChanged?: boolean };
             try {
               data = JSON.parse(line.slice(6));
             } catch {
@@ -93,6 +98,9 @@ export function useLeapChat({
             }
             if (Array.isArray(data.options) && data.options.length > 0) {
               streamOptions = data.options;
+            }
+            if (data.boardChanged) {
+              boardChanged = true;
             }
             if (data.done) {
               done = true;
@@ -112,6 +120,9 @@ export function useLeapChat({
         ]);
       }
       if (streamOptions) setOptions(streamOptions);
+      if (boardChanged) {
+        queryClient.invalidateQueries({ queryKey: getGetLeapBoardQueryKey(token) });
+      }
       if (streamError) {
         setError(streamError);
       } else if (!finalContent) {
