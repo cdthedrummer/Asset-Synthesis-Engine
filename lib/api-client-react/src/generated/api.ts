@@ -29,6 +29,19 @@ import type {
   HealthStatus,
   ListBriefsParams,
   ListRecentCheckinsParams,
+  NlAnswerInput,
+  NlBoardInput,
+  NlBoardState,
+  NlChatInput,
+  NlCheckinInput,
+  NlCheckinTurn,
+  NlDemoPersona,
+  NlInterviewTurn,
+  NlMessage,
+  NlMove,
+  NlMoveUpdate,
+  NlPin,
+  NlPinQuickAdd,
   OpenaiConversation,
   OpenaiConversationInput,
   OpenaiConversationWithMessages,
@@ -1501,4 +1514,755 @@ export const useSendOpenaiMessage = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getSendOpenaiMessageMutationOptions(options));
     }
+
+export const getCreateLeapBoardUrl = () => {
+
+
+
+
+  return `/api/nextleap/boards`
+}
+
+/**
+ * @summary Start a new Next Leap board (front door)
+ */
+export const createLeapBoard = async (nlBoardInput: NlBoardInput, options?: RequestInit): Promise<NlBoardState> => {
+
+  return customFetch<NlBoardState>(getCreateLeapBoardUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(nlBoardInput)
+  }
+);}
+
+
+
+
+
+export const getCreateLeapBoardMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLeapBoard>>, TError,{data: BodyType<NlBoardInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createLeapBoard>>, TError,{data: BodyType<NlBoardInput>}, TContext> => {
+
+const mutationKey = ['createLeapBoard'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLeapBoard>>, {data: BodyType<NlBoardInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createLeapBoard(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateLeapBoardMutationResult = NonNullable<Awaited<ReturnType<typeof createLeapBoard>>>
+    export type CreateLeapBoardMutationBody = BodyType<NlBoardInput>
+    export type CreateLeapBoardMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Start a new Next Leap board (front door)
+ */
+export const useCreateLeapBoard = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLeapBoard>>, TError,{data: BodyType<NlBoardInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createLeapBoard>>,
+        TError,
+        {data: BodyType<NlBoardInput>},
+        TContext
+      > => {
+      return useMutation(getCreateLeapBoardMutationOptions(options));
+    }
+
+export const getGetLeapBoardUrl = (token: string,) => {
+
+
+
+
+  return `/api/nextleap/boards/${token}`
+}
+
+/**
+ * @summary Full board state by share token
+ */
+export const getLeapBoard = async (token: string, options?: RequestInit): Promise<NlBoardState> => {
+
+  return customFetch<NlBoardState>(getGetLeapBoardUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLeapBoardQueryKey = (token: string,) => {
+    return [
+    `/api/nextleap/boards/${token}`
+    ] as const;
+    }
+
+
+export const getGetLeapBoardQueryOptions = <TData = Awaited<ReturnType<typeof getLeapBoard>>, TError = ErrorType<ApiErrorMessage>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLeapBoard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLeapBoardQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLeapBoard>>> = ({ signal }) => getLeapBoard(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLeapBoard>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLeapBoardQueryResult = NonNullable<Awaited<ReturnType<typeof getLeapBoard>>>
+export type GetLeapBoardQueryError = ErrorType<ApiErrorMessage>
+
+
+/**
+ * @summary Full board state by share token
+ */
+
+export function useGetLeapBoard<TData = Awaited<ReturnType<typeof getLeapBoard>>, TError = ErrorType<ApiErrorMessage>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLeapBoard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLeapBoardQueryOptions(token,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAnswerLeapInterviewUrl = (token: string,) => {
+
+
+
+
+  return `/api/nextleap/boards/${token}/answers`
+}
+
+/**
+ * @summary Answer the current interview question; board ops are applied server-side
+ */
+export const answerLeapInterview = async (token: string,
+    nlAnswerInput: NlAnswerInput, options?: RequestInit): Promise<NlInterviewTurn> => {
+
+  return customFetch<NlInterviewTurn>(getAnswerLeapInterviewUrl(token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(nlAnswerInput)
+  }
+);}
+
+
+
+
+
+export const getAnswerLeapInterviewMutationOptions = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof answerLeapInterview>>, TError,{token: string;data: BodyType<NlAnswerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof answerLeapInterview>>, TError,{token: string;data: BodyType<NlAnswerInput>}, TContext> => {
+
+const mutationKey = ['answerLeapInterview'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof answerLeapInterview>>, {token: string;data: BodyType<NlAnswerInput>}> = (props) => {
+          const {token,data} = props ?? {};
+
+          return  answerLeapInterview(token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AnswerLeapInterviewMutationResult = NonNullable<Awaited<ReturnType<typeof answerLeapInterview>>>
+    export type AnswerLeapInterviewMutationBody = BodyType<NlAnswerInput>
+    export type AnswerLeapInterviewMutationError = ErrorType<ApiErrorMessage>
+
+    /**
+ * @summary Answer the current interview question; board ops are applied server-side
+ */
+export const useAnswerLeapInterview = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof answerLeapInterview>>, TError,{token: string;data: BodyType<NlAnswerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof answerLeapInterview>>,
+        TError,
+        {token: string;data: BodyType<NlAnswerInput>},
+        TContext
+      > => {
+      return useMutation(getAnswerLeapInterviewMutationOptions(options));
+    }
+
+export const getSendLeapChatUrl = (token: string,) => {
+
+
+
+
+  return `/api/nextleap/boards/${token}/chat`
+}
+
+/**
+ * @summary Send a chat message (main, pin, or move thread); streaming reply
+ */
+export const sendLeapChat = async (token: string,
+    nlChatInput: NlChatInput, options?: RequestInit): Promise<unknown> => {
+
+  return customFetch<unknown>(getSendLeapChatUrl(token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(nlChatInput)
+  }
+);}
+
+
+
+
+
+export const getSendLeapChatMutationOptions = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendLeapChat>>, TError,{token: string;data: BodyType<NlChatInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendLeapChat>>, TError,{token: string;data: BodyType<NlChatInput>}, TContext> => {
+
+const mutationKey = ['sendLeapChat'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendLeapChat>>, {token: string;data: BodyType<NlChatInput>}> = (props) => {
+          const {token,data} = props ?? {};
+
+          return  sendLeapChat(token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendLeapChatMutationResult = NonNullable<Awaited<ReturnType<typeof sendLeapChat>>>
+    export type SendLeapChatMutationBody = BodyType<NlChatInput>
+    export type SendLeapChatMutationError = ErrorType<ApiErrorMessage>
+
+    /**
+ * @summary Send a chat message (main, pin, or move thread); streaming reply
+ */
+export const useSendLeapChat = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendLeapChat>>, TError,{token: string;data: BodyType<NlChatInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendLeapChat>>,
+        TError,
+        {token: string;data: BodyType<NlChatInput>},
+        TContext
+      > => {
+      return useMutation(getSendLeapChatMutationOptions(options));
+    }
+
+export const getListLeapPinMessagesUrl = (token: string,
+    pinId: number,) => {
+
+
+
+
+  return `/api/nextleap/boards/${token}/pins/${pinId}/messages`
+}
+
+/**
+ * @summary List messages in a pin's chat thread
+ */
+export const listLeapPinMessages = async (token: string,
+    pinId: number, options?: RequestInit): Promise<NlMessage[]> => {
+
+  return customFetch<NlMessage[]>(getListLeapPinMessagesUrl(token,pinId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListLeapPinMessagesQueryKey = (token: string,
+    pinId: number,) => {
+    return [
+    `/api/nextleap/boards/${token}/pins/${pinId}/messages`
+    ] as const;
+    }
+
+
+export const getListLeapPinMessagesQueryOptions = <TData = Awaited<ReturnType<typeof listLeapPinMessages>>, TError = ErrorType<ApiErrorMessage>>(token: string,
+    pinId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLeapPinMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListLeapPinMessagesQueryKey(token,pinId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listLeapPinMessages>>> = ({ signal }) => listLeapPinMessages(token,pinId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined && pinId !== null && pinId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listLeapPinMessages>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListLeapPinMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof listLeapPinMessages>>>
+export type ListLeapPinMessagesQueryError = ErrorType<ApiErrorMessage>
+
+
+/**
+ * @summary List messages in a pin's chat thread
+ */
+
+export function useListLeapPinMessages<TData = Awaited<ReturnType<typeof listLeapPinMessages>>, TError = ErrorType<ApiErrorMessage>>(
+ token: string,
+    pinId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLeapPinMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListLeapPinMessagesQueryOptions(token,pinId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListLeapMoveMessagesUrl = (token: string,
+    moveId: number,) => {
+
+
+
+
+  return `/api/nextleap/boards/${token}/moves/${moveId}/messages`
+}
+
+/**
+ * @summary List messages in a move's rep session thread
+ */
+export const listLeapMoveMessages = async (token: string,
+    moveId: number, options?: RequestInit): Promise<NlMessage[]> => {
+
+  return customFetch<NlMessage[]>(getListLeapMoveMessagesUrl(token,moveId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListLeapMoveMessagesQueryKey = (token: string,
+    moveId: number,) => {
+    return [
+    `/api/nextleap/boards/${token}/moves/${moveId}/messages`
+    ] as const;
+    }
+
+
+export const getListLeapMoveMessagesQueryOptions = <TData = Awaited<ReturnType<typeof listLeapMoveMessages>>, TError = ErrorType<ApiErrorMessage>>(token: string,
+    moveId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLeapMoveMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListLeapMoveMessagesQueryKey(token,moveId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listLeapMoveMessages>>> = ({ signal }) => listLeapMoveMessages(token,moveId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined && moveId !== null && moveId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listLeapMoveMessages>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListLeapMoveMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof listLeapMoveMessages>>>
+export type ListLeapMoveMessagesQueryError = ErrorType<ApiErrorMessage>
+
+
+/**
+ * @summary List messages in a move's rep session thread
+ */
+
+export function useListLeapMoveMessages<TData = Awaited<ReturnType<typeof listLeapMoveMessages>>, TError = ErrorType<ApiErrorMessage>>(
+ token: string,
+    moveId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLeapMoveMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListLeapMoveMessagesQueryOptions(token,moveId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getQuickAddLeapPinUrl = (token: string,) => {
+
+
+
+
+  return `/api/nextleap/boards/${token}/pins`
+}
+
+/**
+ * @summary Quick-add a pin from a short free-text note (AI classifies and scores it)
+ */
+export const quickAddLeapPin = async (token: string,
+    nlPinQuickAdd: NlPinQuickAdd, options?: RequestInit): Promise<NlPin> => {
+
+  return customFetch<NlPin>(getQuickAddLeapPinUrl(token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(nlPinQuickAdd)
+  }
+);}
+
+
+
+
+
+export const getQuickAddLeapPinMutationOptions = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof quickAddLeapPin>>, TError,{token: string;data: BodyType<NlPinQuickAdd>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof quickAddLeapPin>>, TError,{token: string;data: BodyType<NlPinQuickAdd>}, TContext> => {
+
+const mutationKey = ['quickAddLeapPin'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof quickAddLeapPin>>, {token: string;data: BodyType<NlPinQuickAdd>}> = (props) => {
+          const {token,data} = props ?? {};
+
+          return  quickAddLeapPin(token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type QuickAddLeapPinMutationResult = NonNullable<Awaited<ReturnType<typeof quickAddLeapPin>>>
+    export type QuickAddLeapPinMutationBody = BodyType<NlPinQuickAdd>
+    export type QuickAddLeapPinMutationError = ErrorType<ApiErrorMessage>
+
+    /**
+ * @summary Quick-add a pin from a short free-text note (AI classifies and scores it)
+ */
+export const useQuickAddLeapPin = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof quickAddLeapPin>>, TError,{token: string;data: BodyType<NlPinQuickAdd>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof quickAddLeapPin>>,
+        TError,
+        {token: string;data: BodyType<NlPinQuickAdd>},
+        TContext
+      > => {
+      return useMutation(getQuickAddLeapPinMutationOptions(options));
+    }
+
+export const getCreateLeapCheckinUrl = (token: string,) => {
+
+
+
+
+  return `/api/nextleap/boards/${token}/checkins`
+}
+
+/**
+ * @summary Check in with what happened; board re-scores and next moves regenerate
+ */
+export const createLeapCheckin = async (token: string,
+    nlCheckinInput: NlCheckinInput, options?: RequestInit): Promise<NlCheckinTurn> => {
+
+  return customFetch<NlCheckinTurn>(getCreateLeapCheckinUrl(token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(nlCheckinInput)
+  }
+);}
+
+
+
+
+
+export const getCreateLeapCheckinMutationOptions = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLeapCheckin>>, TError,{token: string;data: BodyType<NlCheckinInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createLeapCheckin>>, TError,{token: string;data: BodyType<NlCheckinInput>}, TContext> => {
+
+const mutationKey = ['createLeapCheckin'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLeapCheckin>>, {token: string;data: BodyType<NlCheckinInput>}> = (props) => {
+          const {token,data} = props ?? {};
+
+          return  createLeapCheckin(token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateLeapCheckinMutationResult = NonNullable<Awaited<ReturnType<typeof createLeapCheckin>>>
+    export type CreateLeapCheckinMutationBody = BodyType<NlCheckinInput>
+    export type CreateLeapCheckinMutationError = ErrorType<ApiErrorMessage>
+
+    /**
+ * @summary Check in with what happened; board re-scores and next moves regenerate
+ */
+export const useCreateLeapCheckin = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLeapCheckin>>, TError,{token: string;data: BodyType<NlCheckinInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createLeapCheckin>>,
+        TError,
+        {token: string;data: BodyType<NlCheckinInput>},
+        TContext
+      > => {
+      return useMutation(getCreateLeapCheckinMutationOptions(options));
+    }
+
+export const getUpdateLeapMoveUrl = (token: string,
+    moveId: number,) => {
+
+
+
+
+  return `/api/nextleap/boards/${token}/moves/${moveId}`
+}
+
+/**
+ * @summary Update a move (mark done or skipped)
+ */
+export const updateLeapMove = async (token: string,
+    moveId: number,
+    nlMoveUpdate: NlMoveUpdate, options?: RequestInit): Promise<NlMove> => {
+
+  return customFetch<NlMove>(getUpdateLeapMoveUrl(token,moveId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(nlMoveUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateLeapMoveMutationOptions = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLeapMove>>, TError,{token: string;moveId: number;data: BodyType<NlMoveUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateLeapMove>>, TError,{token: string;moveId: number;data: BodyType<NlMoveUpdate>}, TContext> => {
+
+const mutationKey = ['updateLeapMove'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateLeapMove>>, {token: string;moveId: number;data: BodyType<NlMoveUpdate>}> = (props) => {
+          const {token,moveId,data} = props ?? {};
+
+          return  updateLeapMove(token,moveId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateLeapMoveMutationResult = NonNullable<Awaited<ReturnType<typeof updateLeapMove>>>
+    export type UpdateLeapMoveMutationBody = BodyType<NlMoveUpdate>
+    export type UpdateLeapMoveMutationError = ErrorType<ApiErrorMessage>
+
+    /**
+ * @summary Update a move (mark done or skipped)
+ */
+export const useUpdateLeapMove = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLeapMove>>, TError,{token: string;moveId: number;data: BodyType<NlMoveUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateLeapMove>>,
+        TError,
+        {token: string;moveId: number;data: BodyType<NlMoveUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateLeapMoveMutationOptions(options));
+    }
+
+export const getListLeapDemosUrl = () => {
+
+
+
+
+  return `/api/nextleap/demos`
+}
+
+/**
+ * @summary List prefilled demo personas
+ */
+export const listLeapDemos = async ( options?: RequestInit): Promise<NlDemoPersona[]> => {
+
+  return customFetch<NlDemoPersona[]>(getListLeapDemosUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListLeapDemosQueryKey = () => {
+    return [
+    `/api/nextleap/demos`
+    ] as const;
+    }
+
+
+export const getListLeapDemosQueryOptions = <TData = Awaited<ReturnType<typeof listLeapDemos>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLeapDemos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListLeapDemosQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listLeapDemos>>> = ({ signal }) => listLeapDemos({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listLeapDemos>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListLeapDemosQueryResult = NonNullable<Awaited<ReturnType<typeof listLeapDemos>>>
+export type ListLeapDemosQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List prefilled demo personas
+ */
+
+export function useListLeapDemos<TData = Awaited<ReturnType<typeof listLeapDemos>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLeapDemos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListLeapDemosQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 

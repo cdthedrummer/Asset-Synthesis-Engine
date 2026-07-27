@@ -390,6 +390,277 @@ paths:
           description: SSE stream of assistant text chunks
           content:
             text/event-stream: {}
+  /nextleap/boards:
+    post:
+      operationId: createLeapBoard
+      tags: [nextleap]
+      summary: Start a new Next Leap board (front door)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NlBoardInput"
+      responses:
+        "201":
+          description: Created board with the opening interview question
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NlBoardState"
+  /nextleap/boards/{token}:
+    get:
+      operationId: getLeapBoard
+      tags: [nextleap]
+      summary: Full board state by share token
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Board with pins, moves, check-ins and main thread
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NlBoardState"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+  /nextleap/boards/{token}/answers:
+    post:
+      operationId: answerLeapInterview
+      tags: [nextleap]
+      summary: Answer the current interview question; board ops are applied server-side
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NlAnswerInput"
+      responses:
+        "200":
+          description: Coach reply plus updated board state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NlInterviewTurn"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+  /nextleap/boards/{token}/chat:
+    post:
+      operationId: sendLeapChat
+      tags: [nextleap]
+      summary: Send a chat message (main, pin, or move thread); streaming reply
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NlChatInput"
+      responses:
+        "200":
+          description: SSE stream of assistant text chunks
+          content:
+            text/event-stream: {}
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+  /nextleap/boards/{token}/pins/{pinId}/messages:
+    get:
+      operationId: listLeapPinMessages
+      tags: [nextleap]
+      summary: List messages in a pin's chat thread
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pinId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Messages oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NlMessage"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+  /nextleap/boards/{token}/moves/{moveId}/messages:
+    get:
+      operationId: listLeapMoveMessages
+      tags: [nextleap]
+      summary: List messages in a move's rep session thread
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: moveId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Messages oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NlMessage"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+  /nextleap/boards/{token}/pins:
+    post:
+      operationId: quickAddLeapPin
+      tags: [nextleap]
+      summary: Quick-add a pin from a short free-text note (AI classifies and scores it)
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NlPinQuickAdd"
+      responses:
+        "201":
+          description: Created pin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NlPin"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+  /nextleap/boards/{token}/checkins:
+    post:
+      operationId: createLeapCheckin
+      tags: [nextleap]
+      summary: Check in with what happened; board re-scores and next moves regenerate
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NlCheckinInput"
+      responses:
+        "201":
+          description: Check-in result plus updated board state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NlCheckinTurn"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+  /nextleap/boards/{token}/moves/{moveId}:
+    patch:
+      operationId: updateLeapMove
+      tags: [nextleap]
+      summary: Update a move (mark done or skipped)
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: moveId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NlMoveUpdate"
+      responses:
+        "200":
+          description: Updated move
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NlMove"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+  /nextleap/demos:
+    get:
+      operationId: listLeapDemos
+      tags: [nextleap]
+      summary: List prefilled demo personas
+      responses:
+        "200":
+          description: Demo personas with board tokens
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NlDemoPersona"
 components:
   schemas:
     HealthStatus:
@@ -791,3 +1062,373 @@ components:
           type: string
       required:
         - error
+    NlBoard:
+      type: object
+      properties:
+        id:
+          type: integer
+        token:
+          type: string
+          description: Unguessable share token; the board's link identity
+        kind:
+          type: string
+          enum: [real, demo]
+        name:
+          type: string
+          description: First name of the person the board belongs to
+        door:
+          type: string
+          enum: [ambition, juggle]
+          description: Front door taken - one ambition, or juggling many roles
+        goalText:
+          type: string
+          description: What they typed at the front door, verbatim
+        aiFamiliarity:
+          type: ["string", "null"]
+          description: new | some | daily - learned during the interview
+        craftComfort:
+          type: ["string", "null"]
+          description: none | some | confident - design/marketing comfort
+        stage:
+          type: string
+          enum: [interview, board]
+        statChips:
+          type: ["array", "null"]
+          description: The three headline stat chips
+          items:
+            type: object
+            properties:
+              value:
+                type: string
+              label:
+                type: string
+              tone:
+                type: string
+                description: neutral | good | warn
+            required: [value, label]
+        trajectory:
+          type: ["object", "null"]
+          description: A-to-B timeline card - history, projection, milestones
+          additionalProperties: true
+        bet:
+          type: ["object", "null"]
+          description: The "which item would you bet I abandon first" beat
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - token
+        - kind
+        - name
+        - door
+        - goalText
+        - aiFamiliarity
+        - craftComfort
+        - stage
+        - statChips
+        - trajectory
+        - bet
+        - createdAt
+        - updatedAt
+    NlPin:
+      type: object
+      properties:
+        id:
+          type: integer
+        boardId:
+          type: integer
+        title:
+          type: string
+          description: Internal name; the board shows only the visual, title appears in drill-down
+        verdict:
+          type: string
+          enum: [start, schedule, skip, gethelp]
+        verdictWhy:
+          type: string
+          description: One-or-two sentence blunt reason shown in the verdict popover
+        difficulty:
+          type: integer
+          description: 1-10 personal difficulty
+        impact:
+          type: integer
+          description: 1-10 twelve-month impact
+        kind:
+          type: string
+          enum: [steps, pipeline, menu, table, calendar, bars, stat]
+          description: Which self-identifying infographic template renders this pin
+        vizData:
+          type: object
+          description: Template-specific payload the pin renders from
+          additionalProperties: true
+        detail:
+          type: ["object", "null"]
+          description: Second drill level - expanded chart/timeline payload
+          additionalProperties: true
+        verifyYourself:
+          type: boolean
+          description: True for license/permit items the user must verify with authorities
+        relatedPinIds:
+          type: array
+          items:
+            type: integer
+        lastTouchedAt:
+          type: string
+          format: date-time
+          description: Drives recency sort and the tiny recency stamp
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - boardId
+        - title
+        - verdict
+        - verdictWhy
+        - difficulty
+        - impact
+        - kind
+        - vizData
+        - detail
+        - verifyYourself
+        - relatedPinIds
+        - lastTouchedAt
+        - createdAt
+    NlMove:
+      type: object
+      properties:
+        id:
+          type: integer
+        boardId:
+          type: integer
+        pinId:
+          type: ["integer", "null"]
+        title:
+          type: string
+        first48:
+          type: string
+          description: The concrete first step framed for the next 48 hours
+        orderIndex:
+          type: integer
+        state:
+          type: string
+          enum: [pending, done, skipped]
+        repKind:
+          type: string
+          description: What artifact the do-it-with-me rep drafts (email, post, pitch, plan, message, none)
+        repDraft:
+          type: ["string", "null"]
+          description: Latest draft produced in the rep session
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - boardId
+        - pinId
+        - title
+        - first48
+        - orderIndex
+        - state
+        - repKind
+        - repDraft
+        - createdAt
+    NlMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        boardId:
+          type: integer
+        pinId:
+          type: ["integer", "null"]
+        moveId:
+          type: ["integer", "null"]
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - boardId
+        - pinId
+        - moveId
+        - role
+        - content
+        - createdAt
+    NlCheckin:
+      type: object
+      properties:
+        id:
+          type: integer
+        boardId:
+          type: integer
+        note:
+          type: string
+          description: What the user said happened, verbatim
+        summary:
+          type: string
+          description: Coach response - celebrates, re-scores, names the dodge
+        changes:
+          type: array
+          description: Re-score deltas applied to pins
+          items:
+            type: object
+            additionalProperties: true
+        dodged:
+          type: ["string", "null"]
+          description: The item the user avoided, named out loud
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - boardId
+        - note
+        - summary
+        - changes
+        - dodged
+        - createdAt
+    NlBoardState:
+      type: object
+      properties:
+        board:
+          $ref: "#/components/schemas/NlBoard"
+        pins:
+          type: array
+          items:
+            $ref: "#/components/schemas/NlPin"
+        moves:
+          type: array
+          items:
+            $ref: "#/components/schemas/NlMove"
+        checkins:
+          type: array
+          items:
+            $ref: "#/components/schemas/NlCheckin"
+        messages:
+          type: array
+          description: Main thread messages, oldest first
+          items:
+            $ref: "#/components/schemas/NlMessage"
+      required:
+        - board
+        - pins
+        - moves
+        - checkins
+        - messages
+    NlBoardInput:
+      type: object
+      properties:
+        door:
+          type: string
+          enum: [ambition, juggle]
+        goalText:
+          type: string
+          minLength: 1
+        name:
+          type: string
+          description: First name, optional
+      required:
+        - door
+        - goalText
+    NlAnswerInput:
+      type: object
+      properties:
+        content:
+          type: string
+          minLength: 1
+      required:
+        - content
+    NlInterviewTurn:
+      type: object
+      properties:
+        say:
+          type: string
+          description: The coach's reply - acknowledgment plus next question, or the wrap-up
+        stage:
+          type: string
+          enum: [interview, board]
+        newPinIds:
+          type: array
+          items:
+            type: integer
+        touchedPinIds:
+          type: array
+          items:
+            type: integer
+        board:
+          $ref: "#/components/schemas/NlBoardState"
+      required:
+        - say
+        - stage
+        - newPinIds
+        - touchedPinIds
+        - board
+    NlChatInput:
+      type: object
+      properties:
+        content:
+          type: string
+          minLength: 1
+        pinId:
+          type: integer
+        moveId:
+          type: integer
+      required:
+        - content
+    NlPinQuickAdd:
+      type: object
+      properties:
+        text:
+          type: string
+          minLength: 1
+      required:
+        - text
+    NlCheckinInput:
+      type: object
+      properties:
+        note:
+          type: string
+          minLength: 1
+      required:
+        - note
+    NlCheckinTurn:
+      type: object
+      properties:
+        checkin:
+          $ref: "#/components/schemas/NlCheckin"
+        board:
+          $ref: "#/components/schemas/NlBoardState"
+      required:
+        - checkin
+        - board
+    NlMoveUpdate:
+      type: object
+      properties:
+        state:
+          type: string
+          enum: [pending, done, skipped]
+    NlDemoPersona:
+      type: object
+      properties:
+        slug:
+          type: string
+        title:
+          type: string
+        tagline:
+          type: string
+        token:
+          type: string
+      required:
+        - slug
+        - title
+        - tagline
+        - token

@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/next-leap/"
+title = "Next Leap"
+version = "1.0.0"
+id = "artifacts/next-leap"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/next-leap/" ]
+localPort = 26071
+
+[services.development]
+run = "pnpm --filter @workspace/next-leap run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/next-leap", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/next-leap/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26071"
+BASE_PATH = "/next-leap/"

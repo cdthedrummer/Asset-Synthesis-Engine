@@ -400,3 +400,476 @@ export const SendOpenaiMessageBody = zod.object({
 export const SendOpenaiMessageResponse = zod.unknown()
 
 
+/**
+ * @summary Start a new Next Leap board (front door)
+ */
+
+
+
+export const CreateLeapBoardBody = zod.object({
+  "door": zod.enum(['ambition', 'juggle']),
+  "goalText": zod.string().min(1),
+  "name": zod.string().optional().describe('First name, optional')
+})
+
+export const CreateLeapBoardResponse = zod.object({
+  "board": zod.object({
+  "id": zod.number(),
+  "token": zod.string().describe('Unguessable share token; the board\'s link identity'),
+  "kind": zod.enum(['real', 'demo']),
+  "name": zod.string().describe('First name of the person the board belongs to'),
+  "door": zod.enum(['ambition', 'juggle']).describe('Front door taken - one ambition, or juggling many roles'),
+  "goalText": zod.string().describe('What they typed at the front door, verbatim'),
+  "aiFamiliarity": zod.string().nullable().describe('new | some | daily - learned during the interview'),
+  "craftComfort": zod.string().nullable().describe('none | some | confident - design\/marketing comfort'),
+  "stage": zod.enum(['interview', 'board']),
+  "statChips": zod.array(zod.object({
+  "value": zod.string(),
+  "label": zod.string(),
+  "tone": zod.string().optional().describe('neutral | good | warn')
+})).nullable().describe('The three headline stat chips'),
+  "trajectory": zod.record(zod.string(), zod.unknown()).nullable().describe('A-to-B timeline card - history, projection, milestones'),
+  "bet": zod.record(zod.string(), zod.unknown()).nullable().describe('The \"which item would you bet I abandon first\" beat'),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "pins": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "title": zod.string().describe('Internal name; the board shows only the visual, title appears in drill-down'),
+  "verdict": zod.enum(['start', 'schedule', 'skip', 'gethelp']),
+  "verdictWhy": zod.string().describe('One-or-two sentence blunt reason shown in the verdict popover'),
+  "difficulty": zod.number().describe('1-10 personal difficulty'),
+  "impact": zod.number().describe('1-10 twelve-month impact'),
+  "kind": zod.enum(['steps', 'pipeline', 'menu', 'table', 'calendar', 'bars', 'stat']).describe('Which self-identifying infographic template renders this pin'),
+  "vizData": zod.record(zod.string(), zod.unknown()).describe('Template-specific payload the pin renders from'),
+  "detail": zod.record(zod.string(), zod.unknown()).nullable().describe('Second drill level - expanded chart\/timeline payload'),
+  "verifyYourself": zod.boolean().describe('True for license\/permit items the user must verify with authorities'),
+  "relatedPinIds": zod.array(zod.number()),
+  "lastTouchedAt": zod.coerce.date().describe('Drives recency sort and the tiny recency stamp'),
+  "createdAt": zod.coerce.date()
+})),
+  "moves": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number().nullable(),
+  "title": zod.string(),
+  "first48": zod.string().describe('The concrete first step framed for the next 48 hours'),
+  "orderIndex": zod.number(),
+  "state": zod.enum(['pending', 'done', 'skipped']),
+  "repKind": zod.string().describe('What artifact the do-it-with-me rep drafts (email, post, pitch, plan, message, none)'),
+  "repDraft": zod.string().nullable().describe('Latest draft produced in the rep session'),
+  "createdAt": zod.coerce.date()
+})),
+  "checkins": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "note": zod.string().describe('What the user said happened, verbatim'),
+  "summary": zod.string().describe('Coach response - celebrates, re-scores, names the dodge'),
+  "changes": zod.array(zod.record(zod.string(), zod.unknown())).describe('Re-score deltas applied to pins'),
+  "dodged": zod.string().nullable().describe('The item the user avoided, named out loud'),
+  "createdAt": zod.coerce.date()
+})),
+  "messages": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number().nullable(),
+  "moveId": zod.number().nullable(),
+  "role": zod.string(),
+  "content": zod.string(),
+  "createdAt": zod.coerce.date()
+})).describe('Main thread messages, oldest first')
+})
+
+
+/**
+ * @summary Full board state by share token
+ */
+export const GetLeapBoardParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const GetLeapBoardResponse = zod.object({
+  "board": zod.object({
+  "id": zod.number(),
+  "token": zod.string().describe('Unguessable share token; the board\'s link identity'),
+  "kind": zod.enum(['real', 'demo']),
+  "name": zod.string().describe('First name of the person the board belongs to'),
+  "door": zod.enum(['ambition', 'juggle']).describe('Front door taken - one ambition, or juggling many roles'),
+  "goalText": zod.string().describe('What they typed at the front door, verbatim'),
+  "aiFamiliarity": zod.string().nullable().describe('new | some | daily - learned during the interview'),
+  "craftComfort": zod.string().nullable().describe('none | some | confident - design\/marketing comfort'),
+  "stage": zod.enum(['interview', 'board']),
+  "statChips": zod.array(zod.object({
+  "value": zod.string(),
+  "label": zod.string(),
+  "tone": zod.string().optional().describe('neutral | good | warn')
+})).nullable().describe('The three headline stat chips'),
+  "trajectory": zod.record(zod.string(), zod.unknown()).nullable().describe('A-to-B timeline card - history, projection, milestones'),
+  "bet": zod.record(zod.string(), zod.unknown()).nullable().describe('The \"which item would you bet I abandon first\" beat'),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "pins": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "title": zod.string().describe('Internal name; the board shows only the visual, title appears in drill-down'),
+  "verdict": zod.enum(['start', 'schedule', 'skip', 'gethelp']),
+  "verdictWhy": zod.string().describe('One-or-two sentence blunt reason shown in the verdict popover'),
+  "difficulty": zod.number().describe('1-10 personal difficulty'),
+  "impact": zod.number().describe('1-10 twelve-month impact'),
+  "kind": zod.enum(['steps', 'pipeline', 'menu', 'table', 'calendar', 'bars', 'stat']).describe('Which self-identifying infographic template renders this pin'),
+  "vizData": zod.record(zod.string(), zod.unknown()).describe('Template-specific payload the pin renders from'),
+  "detail": zod.record(zod.string(), zod.unknown()).nullable().describe('Second drill level - expanded chart\/timeline payload'),
+  "verifyYourself": zod.boolean().describe('True for license\/permit items the user must verify with authorities'),
+  "relatedPinIds": zod.array(zod.number()),
+  "lastTouchedAt": zod.coerce.date().describe('Drives recency sort and the tiny recency stamp'),
+  "createdAt": zod.coerce.date()
+})),
+  "moves": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number().nullable(),
+  "title": zod.string(),
+  "first48": zod.string().describe('The concrete first step framed for the next 48 hours'),
+  "orderIndex": zod.number(),
+  "state": zod.enum(['pending', 'done', 'skipped']),
+  "repKind": zod.string().describe('What artifact the do-it-with-me rep drafts (email, post, pitch, plan, message, none)'),
+  "repDraft": zod.string().nullable().describe('Latest draft produced in the rep session'),
+  "createdAt": zod.coerce.date()
+})),
+  "checkins": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "note": zod.string().describe('What the user said happened, verbatim'),
+  "summary": zod.string().describe('Coach response - celebrates, re-scores, names the dodge'),
+  "changes": zod.array(zod.record(zod.string(), zod.unknown())).describe('Re-score deltas applied to pins'),
+  "dodged": zod.string().nullable().describe('The item the user avoided, named out loud'),
+  "createdAt": zod.coerce.date()
+})),
+  "messages": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number().nullable(),
+  "moveId": zod.number().nullable(),
+  "role": zod.string(),
+  "content": zod.string(),
+  "createdAt": zod.coerce.date()
+})).describe('Main thread messages, oldest first')
+})
+
+
+/**
+ * @summary Answer the current interview question; board ops are applied server-side
+ */
+export const AnswerLeapInterviewParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+
+
+
+export const AnswerLeapInterviewBody = zod.object({
+  "content": zod.string().min(1)
+})
+
+export const AnswerLeapInterviewResponse = zod.object({
+  "say": zod.string().describe('The coach\'s reply - acknowledgment plus next question, or the wrap-up'),
+  "stage": zod.enum(['interview', 'board']),
+  "newPinIds": zod.array(zod.number()),
+  "touchedPinIds": zod.array(zod.number()),
+  "board": zod.object({
+  "board": zod.object({
+  "id": zod.number(),
+  "token": zod.string().describe('Unguessable share token; the board\'s link identity'),
+  "kind": zod.enum(['real', 'demo']),
+  "name": zod.string().describe('First name of the person the board belongs to'),
+  "door": zod.enum(['ambition', 'juggle']).describe('Front door taken - one ambition, or juggling many roles'),
+  "goalText": zod.string().describe('What they typed at the front door, verbatim'),
+  "aiFamiliarity": zod.string().nullable().describe('new | some | daily - learned during the interview'),
+  "craftComfort": zod.string().nullable().describe('none | some | confident - design\/marketing comfort'),
+  "stage": zod.enum(['interview', 'board']),
+  "statChips": zod.array(zod.object({
+  "value": zod.string(),
+  "label": zod.string(),
+  "tone": zod.string().optional().describe('neutral | good | warn')
+})).nullable().describe('The three headline stat chips'),
+  "trajectory": zod.record(zod.string(), zod.unknown()).nullable().describe('A-to-B timeline card - history, projection, milestones'),
+  "bet": zod.record(zod.string(), zod.unknown()).nullable().describe('The \"which item would you bet I abandon first\" beat'),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "pins": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "title": zod.string().describe('Internal name; the board shows only the visual, title appears in drill-down'),
+  "verdict": zod.enum(['start', 'schedule', 'skip', 'gethelp']),
+  "verdictWhy": zod.string().describe('One-or-two sentence blunt reason shown in the verdict popover'),
+  "difficulty": zod.number().describe('1-10 personal difficulty'),
+  "impact": zod.number().describe('1-10 twelve-month impact'),
+  "kind": zod.enum(['steps', 'pipeline', 'menu', 'table', 'calendar', 'bars', 'stat']).describe('Which self-identifying infographic template renders this pin'),
+  "vizData": zod.record(zod.string(), zod.unknown()).describe('Template-specific payload the pin renders from'),
+  "detail": zod.record(zod.string(), zod.unknown()).nullable().describe('Second drill level - expanded chart\/timeline payload'),
+  "verifyYourself": zod.boolean().describe('True for license\/permit items the user must verify with authorities'),
+  "relatedPinIds": zod.array(zod.number()),
+  "lastTouchedAt": zod.coerce.date().describe('Drives recency sort and the tiny recency stamp'),
+  "createdAt": zod.coerce.date()
+})),
+  "moves": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number().nullable(),
+  "title": zod.string(),
+  "first48": zod.string().describe('The concrete first step framed for the next 48 hours'),
+  "orderIndex": zod.number(),
+  "state": zod.enum(['pending', 'done', 'skipped']),
+  "repKind": zod.string().describe('What artifact the do-it-with-me rep drafts (email, post, pitch, plan, message, none)'),
+  "repDraft": zod.string().nullable().describe('Latest draft produced in the rep session'),
+  "createdAt": zod.coerce.date()
+})),
+  "checkins": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "note": zod.string().describe('What the user said happened, verbatim'),
+  "summary": zod.string().describe('Coach response - celebrates, re-scores, names the dodge'),
+  "changes": zod.array(zod.record(zod.string(), zod.unknown())).describe('Re-score deltas applied to pins'),
+  "dodged": zod.string().nullable().describe('The item the user avoided, named out loud'),
+  "createdAt": zod.coerce.date()
+})),
+  "messages": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number().nullable(),
+  "moveId": zod.number().nullable(),
+  "role": zod.string(),
+  "content": zod.string(),
+  "createdAt": zod.coerce.date()
+})).describe('Main thread messages, oldest first')
+})
+})
+
+
+/**
+ * @summary Send a chat message (main, pin, or move thread); streaming reply
+ */
+export const SendLeapChatParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+
+
+
+export const SendLeapChatBody = zod.object({
+  "content": zod.string().min(1),
+  "pinId": zod.number().optional(),
+  "moveId": zod.number().optional()
+})
+
+export const SendLeapChatResponse = zod.unknown()
+
+
+/**
+ * @summary List messages in a pin's chat thread
+ */
+export const ListLeapPinMessagesParams = zod.object({
+  "token": zod.coerce.string(),
+  "pinId": zod.coerce.number()
+})
+
+export const ListLeapPinMessagesResponseItem = zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number().nullable(),
+  "moveId": zod.number().nullable(),
+  "role": zod.string(),
+  "content": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const ListLeapPinMessagesResponse = zod.array(ListLeapPinMessagesResponseItem)
+
+
+/**
+ * @summary List messages in a move's rep session thread
+ */
+export const ListLeapMoveMessagesParams = zod.object({
+  "token": zod.coerce.string(),
+  "moveId": zod.coerce.number()
+})
+
+export const ListLeapMoveMessagesResponseItem = zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number().nullable(),
+  "moveId": zod.number().nullable(),
+  "role": zod.string(),
+  "content": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const ListLeapMoveMessagesResponse = zod.array(ListLeapMoveMessagesResponseItem)
+
+
+/**
+ * @summary Quick-add a pin from a short free-text note (AI classifies and scores it)
+ */
+export const QuickAddLeapPinParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+
+
+
+export const QuickAddLeapPinBody = zod.object({
+  "text": zod.string().min(1)
+})
+
+export const QuickAddLeapPinResponse = zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "title": zod.string().describe('Internal name; the board shows only the visual, title appears in drill-down'),
+  "verdict": zod.enum(['start', 'schedule', 'skip', 'gethelp']),
+  "verdictWhy": zod.string().describe('One-or-two sentence blunt reason shown in the verdict popover'),
+  "difficulty": zod.number().describe('1-10 personal difficulty'),
+  "impact": zod.number().describe('1-10 twelve-month impact'),
+  "kind": zod.enum(['steps', 'pipeline', 'menu', 'table', 'calendar', 'bars', 'stat']).describe('Which self-identifying infographic template renders this pin'),
+  "vizData": zod.record(zod.string(), zod.unknown()).describe('Template-specific payload the pin renders from'),
+  "detail": zod.record(zod.string(), zod.unknown()).nullable().describe('Second drill level - expanded chart\/timeline payload'),
+  "verifyYourself": zod.boolean().describe('True for license\/permit items the user must verify with authorities'),
+  "relatedPinIds": zod.array(zod.number()),
+  "lastTouchedAt": zod.coerce.date().describe('Drives recency sort and the tiny recency stamp'),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Check in with what happened; board re-scores and next moves regenerate
+ */
+export const CreateLeapCheckinParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+
+
+
+export const CreateLeapCheckinBody = zod.object({
+  "note": zod.string().min(1)
+})
+
+export const CreateLeapCheckinResponse = zod.object({
+  "checkin": zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "note": zod.string().describe('What the user said happened, verbatim'),
+  "summary": zod.string().describe('Coach response - celebrates, re-scores, names the dodge'),
+  "changes": zod.array(zod.record(zod.string(), zod.unknown())).describe('Re-score deltas applied to pins'),
+  "dodged": zod.string().nullable().describe('The item the user avoided, named out loud'),
+  "createdAt": zod.coerce.date()
+}),
+  "board": zod.object({
+  "board": zod.object({
+  "id": zod.number(),
+  "token": zod.string().describe('Unguessable share token; the board\'s link identity'),
+  "kind": zod.enum(['real', 'demo']),
+  "name": zod.string().describe('First name of the person the board belongs to'),
+  "door": zod.enum(['ambition', 'juggle']).describe('Front door taken - one ambition, or juggling many roles'),
+  "goalText": zod.string().describe('What they typed at the front door, verbatim'),
+  "aiFamiliarity": zod.string().nullable().describe('new | some | daily - learned during the interview'),
+  "craftComfort": zod.string().nullable().describe('none | some | confident - design\/marketing comfort'),
+  "stage": zod.enum(['interview', 'board']),
+  "statChips": zod.array(zod.object({
+  "value": zod.string(),
+  "label": zod.string(),
+  "tone": zod.string().optional().describe('neutral | good | warn')
+})).nullable().describe('The three headline stat chips'),
+  "trajectory": zod.record(zod.string(), zod.unknown()).nullable().describe('A-to-B timeline card - history, projection, milestones'),
+  "bet": zod.record(zod.string(), zod.unknown()).nullable().describe('The \"which item would you bet I abandon first\" beat'),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "pins": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "title": zod.string().describe('Internal name; the board shows only the visual, title appears in drill-down'),
+  "verdict": zod.enum(['start', 'schedule', 'skip', 'gethelp']),
+  "verdictWhy": zod.string().describe('One-or-two sentence blunt reason shown in the verdict popover'),
+  "difficulty": zod.number().describe('1-10 personal difficulty'),
+  "impact": zod.number().describe('1-10 twelve-month impact'),
+  "kind": zod.enum(['steps', 'pipeline', 'menu', 'table', 'calendar', 'bars', 'stat']).describe('Which self-identifying infographic template renders this pin'),
+  "vizData": zod.record(zod.string(), zod.unknown()).describe('Template-specific payload the pin renders from'),
+  "detail": zod.record(zod.string(), zod.unknown()).nullable().describe('Second drill level - expanded chart\/timeline payload'),
+  "verifyYourself": zod.boolean().describe('True for license\/permit items the user must verify with authorities'),
+  "relatedPinIds": zod.array(zod.number()),
+  "lastTouchedAt": zod.coerce.date().describe('Drives recency sort and the tiny recency stamp'),
+  "createdAt": zod.coerce.date()
+})),
+  "moves": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number().nullable(),
+  "title": zod.string(),
+  "first48": zod.string().describe('The concrete first step framed for the next 48 hours'),
+  "orderIndex": zod.number(),
+  "state": zod.enum(['pending', 'done', 'skipped']),
+  "repKind": zod.string().describe('What artifact the do-it-with-me rep drafts (email, post, pitch, plan, message, none)'),
+  "repDraft": zod.string().nullable().describe('Latest draft produced in the rep session'),
+  "createdAt": zod.coerce.date()
+})),
+  "checkins": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "note": zod.string().describe('What the user said happened, verbatim'),
+  "summary": zod.string().describe('Coach response - celebrates, re-scores, names the dodge'),
+  "changes": zod.array(zod.record(zod.string(), zod.unknown())).describe('Re-score deltas applied to pins'),
+  "dodged": zod.string().nullable().describe('The item the user avoided, named out loud'),
+  "createdAt": zod.coerce.date()
+})),
+  "messages": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number().nullable(),
+  "moveId": zod.number().nullable(),
+  "role": zod.string(),
+  "content": zod.string(),
+  "createdAt": zod.coerce.date()
+})).describe('Main thread messages, oldest first')
+})
+})
+
+
+/**
+ * @summary Update a move (mark done or skipped)
+ */
+export const UpdateLeapMoveParams = zod.object({
+  "token": zod.coerce.string(),
+  "moveId": zod.coerce.number()
+})
+
+export const UpdateLeapMoveBody = zod.object({
+  "state": zod.enum(['pending', 'done', 'skipped']).optional()
+})
+
+export const UpdateLeapMoveResponse = zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number().nullable(),
+  "title": zod.string(),
+  "first48": zod.string().describe('The concrete first step framed for the next 48 hours'),
+  "orderIndex": zod.number(),
+  "state": zod.enum(['pending', 'done', 'skipped']),
+  "repKind": zod.string().describe('What artifact the do-it-with-me rep drafts (email, post, pitch, plan, message, none)'),
+  "repDraft": zod.string().nullable().describe('Latest draft produced in the rep session'),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List prefilled demo personas
+ */
+export const ListLeapDemosResponseItem = zod.object({
+  "slug": zod.string(),
+  "title": zod.string(),
+  "tagline": zod.string(),
+  "token": zod.string()
+})
+export const ListLeapDemosResponse = zod.array(ListLeapDemosResponseItem)
+
+

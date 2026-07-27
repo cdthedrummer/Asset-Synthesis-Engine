@@ -331,6 +331,308 @@ export interface OpenaiError {
   error: string;
 }
 
+export type NlBoardKind = typeof NlBoardKind[keyof typeof NlBoardKind];
+
+
+export const NlBoardKind = {
+  real: 'real',
+  demo: 'demo',
+} as const;
+
+/**
+ * Front door taken - one ambition, or juggling many roles
+ */
+export type NlBoardDoor = typeof NlBoardDoor[keyof typeof NlBoardDoor];
+
+
+export const NlBoardDoor = {
+  ambition: 'ambition',
+  juggle: 'juggle',
+} as const;
+
+export type NlBoardStage = typeof NlBoardStage[keyof typeof NlBoardStage];
+
+
+export const NlBoardStage = {
+  interview: 'interview',
+  board: 'board',
+} as const;
+
+export type NlBoardStatChipsItem = {
+  value: string;
+  label: string;
+  /** neutral | good | warn */
+  tone?: string;
+};
+
+/**
+ * A-to-B timeline card - history, projection, milestones
+ * @nullable
+ */
+export type NlBoardTrajectory = { [key: string]: unknown } | null;
+
+/**
+ * The "which item would you bet I abandon first" beat
+ * @nullable
+ */
+export type NlBoardBet = { [key: string]: unknown } | null;
+
+export interface NlBoard {
+  id: number;
+  /** Unguessable share token; the board's link identity */
+  token: string;
+  kind: NlBoardKind;
+  /** First name of the person the board belongs to */
+  name: string;
+  /** Front door taken - one ambition, or juggling many roles */
+  door: NlBoardDoor;
+  /** What they typed at the front door, verbatim */
+  goalText: string;
+  /**
+     * new | some | daily - learned during the interview
+     * @nullable
+     */
+  aiFamiliarity: string | null;
+  /**
+     * none | some | confident - design/marketing comfort
+     * @nullable
+     */
+  craftComfort: string | null;
+  stage: NlBoardStage;
+  /**
+     * The three headline stat chips
+     * @nullable
+     */
+  statChips: NlBoardStatChipsItem[] | null;
+  /**
+     * A-to-B timeline card - history, projection, milestones
+     * @nullable
+     */
+  trajectory: NlBoardTrajectory;
+  /**
+     * The "which item would you bet I abandon first" beat
+     * @nullable
+     */
+  bet: NlBoardBet;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type NlPinVerdict = typeof NlPinVerdict[keyof typeof NlPinVerdict];
+
+
+export const NlPinVerdict = {
+  start: 'start',
+  schedule: 'schedule',
+  skip: 'skip',
+  gethelp: 'gethelp',
+} as const;
+
+/**
+ * Which self-identifying infographic template renders this pin
+ */
+export type NlPinKind = typeof NlPinKind[keyof typeof NlPinKind];
+
+
+export const NlPinKind = {
+  steps: 'steps',
+  pipeline: 'pipeline',
+  menu: 'menu',
+  table: 'table',
+  calendar: 'calendar',
+  bars: 'bars',
+  stat: 'stat',
+} as const;
+
+/**
+ * Template-specific payload the pin renders from
+ */
+export type NlPinVizData = { [key: string]: unknown };
+
+/**
+ * Second drill level - expanded chart/timeline payload
+ * @nullable
+ */
+export type NlPinDetail = { [key: string]: unknown } | null;
+
+export interface NlPin {
+  id: number;
+  boardId: number;
+  /** Internal name; the board shows only the visual, title appears in drill-down */
+  title: string;
+  verdict: NlPinVerdict;
+  /** One-or-two sentence blunt reason shown in the verdict popover */
+  verdictWhy: string;
+  /** 1-10 personal difficulty */
+  difficulty: number;
+  /** 1-10 twelve-month impact */
+  impact: number;
+  /** Which self-identifying infographic template renders this pin */
+  kind: NlPinKind;
+  /** Template-specific payload the pin renders from */
+  vizData: NlPinVizData;
+  /**
+     * Second drill level - expanded chart/timeline payload
+     * @nullable
+     */
+  detail: NlPinDetail;
+  /** True for license/permit items the user must verify with authorities */
+  verifyYourself: boolean;
+  relatedPinIds: number[];
+  /** Drives recency sort and the tiny recency stamp */
+  lastTouchedAt: string;
+  createdAt: string;
+}
+
+export type NlMoveState = typeof NlMoveState[keyof typeof NlMoveState];
+
+
+export const NlMoveState = {
+  pending: 'pending',
+  done: 'done',
+  skipped: 'skipped',
+} as const;
+
+export interface NlMove {
+  id: number;
+  boardId: number;
+  /** @nullable */
+  pinId: number | null;
+  title: string;
+  /** The concrete first step framed for the next 48 hours */
+  first48: string;
+  orderIndex: number;
+  state: NlMoveState;
+  /** What artifact the do-it-with-me rep drafts (email, post, pitch, plan, message, none) */
+  repKind: string;
+  /**
+     * Latest draft produced in the rep session
+     * @nullable
+     */
+  repDraft: string | null;
+  createdAt: string;
+}
+
+export interface NlMessage {
+  id: number;
+  boardId: number;
+  /** @nullable */
+  pinId: number | null;
+  /** @nullable */
+  moveId: number | null;
+  role: string;
+  content: string;
+  createdAt: string;
+}
+
+export type NlCheckinChangesItem = { [key: string]: unknown };
+
+export interface NlCheckin {
+  id: number;
+  boardId: number;
+  /** What the user said happened, verbatim */
+  note: string;
+  /** Coach response - celebrates, re-scores, names the dodge */
+  summary: string;
+  /** Re-score deltas applied to pins */
+  changes: NlCheckinChangesItem[];
+  /**
+     * The item the user avoided, named out loud
+     * @nullable
+     */
+  dodged: string | null;
+  createdAt: string;
+}
+
+export interface NlBoardState {
+  board: NlBoard;
+  pins: NlPin[];
+  moves: NlMove[];
+  checkins: NlCheckin[];
+  /** Main thread messages, oldest first */
+  messages: NlMessage[];
+}
+
+export type NlBoardInputDoor = typeof NlBoardInputDoor[keyof typeof NlBoardInputDoor];
+
+
+export const NlBoardInputDoor = {
+  ambition: 'ambition',
+  juggle: 'juggle',
+} as const;
+
+export interface NlBoardInput {
+  door: NlBoardInputDoor;
+  /** @minLength 1 */
+  goalText: string;
+  /** First name, optional */
+  name?: string;
+}
+
+export interface NlAnswerInput {
+  /** @minLength 1 */
+  content: string;
+}
+
+export type NlInterviewTurnStage = typeof NlInterviewTurnStage[keyof typeof NlInterviewTurnStage];
+
+
+export const NlInterviewTurnStage = {
+  interview: 'interview',
+  board: 'board',
+} as const;
+
+export interface NlInterviewTurn {
+  /** The coach's reply - acknowledgment plus next question, or the wrap-up */
+  say: string;
+  stage: NlInterviewTurnStage;
+  newPinIds: number[];
+  touchedPinIds: number[];
+  board: NlBoardState;
+}
+
+export interface NlChatInput {
+  /** @minLength 1 */
+  content: string;
+  pinId?: number;
+  moveId?: number;
+}
+
+export interface NlPinQuickAdd {
+  /** @minLength 1 */
+  text: string;
+}
+
+export interface NlCheckinInput {
+  /** @minLength 1 */
+  note: string;
+}
+
+export interface NlCheckinTurn {
+  checkin: NlCheckin;
+  board: NlBoardState;
+}
+
+export type NlMoveUpdateState = typeof NlMoveUpdateState[keyof typeof NlMoveUpdateState];
+
+
+export const NlMoveUpdateState = {
+  pending: 'pending',
+  done: 'done',
+  skipped: 'skipped',
+} as const;
+
+export interface NlMoveUpdate {
+  state?: NlMoveUpdateState;
+}
+
+export interface NlDemoPersona {
+  slug: string;
+  title: string;
+  tagline: string;
+  token: string;
+}
+
 export type ListRecentCheckinsParams = {
 limit?: number;
 };
