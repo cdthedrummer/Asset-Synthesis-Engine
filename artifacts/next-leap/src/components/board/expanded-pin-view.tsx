@@ -190,21 +190,6 @@ export const ExpandedPinView = ({
               </span>
             </div>
             <p className="text-foreground text-[16px] leading-relaxed font-medium">{pin.verdictWhy}</p>
-            <div className="flex items-end gap-5 mt-4">
-              <div>
-                <div className="text-[10px] font-mono text-muted-foreground uppercase font-bold tracking-widest mb-1">Impact</div>
-                <div className="font-sans font-bold text-[18px] text-foreground leading-none">{pin.impact}/10</div>
-              </div>
-              <div>
-                <div className="text-[10px] font-mono text-muted-foreground uppercase font-bold tracking-widest mb-1">Difficulty</div>
-                <div className="font-sans font-bold text-[18px] text-foreground leading-none">{pin.difficulty}/10</div>
-              </div>
-              {pin.verifyYourself && (
-                <span className="ml-auto px-2.5 py-1 rounded-full bg-[#FFFBEB] text-[#D97706] text-[9px] font-mono font-bold uppercase tracking-widest">
-                  Verify yourself
-                </span>
-              )}
-            </div>
           </div>
 
           {/* Manage the pin */}
