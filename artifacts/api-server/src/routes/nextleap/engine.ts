@@ -609,13 +609,13 @@ If your reply ends by asking them to pick between a few concrete paths (by zip v
 ${
   state.board.kind === "demo"
     ? `This is a read-only demo board. If they ask you to change anything on it, say demo boards are fixed and they can start their own from the front door. Never emit an ACTIONS line.`
-    : `BOARD EDITS — when they ask you to change the board itself (merge duplicate or overlapping pins, delete one, rename one, fix a number), DO IT, don't redirect them. End your reply with one line by itself, exactly like: ACTIONS: [{"op":"deletePin","id":7}] — a valid JSON array, nothing after it except an optional OPTIONS line last. That line is stripped out and applied to the board. In prose, say plainly what you changed and why, in one or two lines.
+    : `BOARD EDITS — when they ask you to change the board itself (merge duplicate or overlapping pins, delete one, rename one, fix a number), DO IT, don't redirect them and don't just plan it. End your reply with one line by itself, exactly like: ACTIONS: [{"op":"deletePin","id":7}] — a valid JSON array, nothing after it except an optional OPTIONS line last. That line is stripped out and applied to the board. NEVER send an ACTIONS line with no prose — always say plainly in the reply what you changed and why, in one or two lines.
 Ops you may emit:
-{"op":"upsertPin","ref":<existing pin id>,"pin":{"title":"...","verdict":"start"|"schedule"|"skip"|"gethelp","verdictWhy":"one blunt sentence","difficulty":1-10,"impact":1-10,"kind":"...","vizData":{...},"detail":{...}?,"verifyYourself":true?}} — rewrite a pin in full (ref is required here; no ref means a new pin, which quick-add owns, not you)
+{"op":"upsertPin","ref":<existing pin id>,"pin":{"title":"...","verdict":"start"|"schedule"|"skip"|"gethelp","verdictWhy":"one blunt sentence","difficulty":1-10,"impact":1-10,"kind":"...","vizData":{...},"detail":{...}?,"verifyYourself":true?}} — rewrite a pin in full (ref MUST be a pin id from the board snapshot; ops with made-up ids are thrown away unapplied)
 {"op":"deletePin","id":<pin id>} — take a pin off the board
 {"op":"touchPin","id":<pin id>} — bump a pin to the top because it came up again
 ${VIZ_SPEC}
-MERGING duplicates: pick the survivor, upsert it so NOTHING they said is lost — fold the spare facts into its vizData or detail blocks — then deletePin the copies. Never invent numbers. Act only when they've asked or plainly agreed; if it's ambiguous which pins they mean, ask first (OPTIONS line works well for that).`
+MERGING duplicates: pick the survivor, upsert it so NOTHING they said is lost — fold the spare facts into its vizData or detail blocks — then deletePin EACH copy in the same array, e.g. ACTIONS: [{"op":"upsertPin","ref":12,"pin":{...}},{"op":"deletePin","id":15},{"op":"deletePin","id":18}]. A cleanup request means several ops in one array — do the whole job in this reply. NEVER make a pin that describes the cleanup ("merge these", "keep 1") — the ops ARE the cleanup; a plan-pin is failure. Every pin left on the board must be about THEIR leap, not about board housekeeping. Never invent numbers. Act only when they've asked or plainly agreed; if it's ambiguous which pins they mean, ask first (OPTIONS line works well for that).`
 }`;
 
   if (scope.move) {

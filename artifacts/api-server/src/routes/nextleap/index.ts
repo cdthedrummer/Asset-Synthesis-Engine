@@ -378,17 +378,20 @@ router.post("/nextleap/boards/:token/chat", async (req, res) => {
     // quick-add, and check-in flows. Demo boards never apply anything.
     let chatOps: Record<string, unknown>[] = [];
     if (markers["ACTIONS:"] !== undefined && !isDemo && !clientGone) {
+      // Every referenced pin must actually exist on THIS board. applyOps
+      // treats upsertPin with an unknown ref as "insert new pin" — in chat
+      // that turns a botched merge into junk pins, so reject it here.
+      const pinIds = new Set(state.pins.map((p) => p.id));
       try {
         const raw: unknown = JSON.parse(markers["ACTIONS:"]);
         if (Array.isArray(raw)) {
           chatOps = raw.filter((o): o is Record<string, unknown> => {
             if (!o || typeof o !== "object") return false;
-            const op = (o as Record<string, unknown>)["op"];
-            if (op === "deletePin" || op === "touchPin") return true;
-            if (op === "upsertPin") {
-              const ref = Number((o as Record<string, unknown>)["ref"]);
-              return Number.isInteger(ref) && ref > 0;
-            }
+            const rec = o as Record<string, unknown>;
+            if (rec["op"] === "deletePin" || rec["op"] === "touchPin")
+              return pinIds.has(Number(rec["id"]));
+            if (rec["op"] === "upsertPin")
+              return pinIds.has(Number(rec["ref"]));
             return false;
           });
         }
@@ -400,7 +403,15 @@ router.post("/nextleap/boards/:token/chat", async (req, res) => {
       res.write(`data: ${JSON.stringify({ content: rest })}\n\n`);
     }
     // Persist exactly what the user saw — the filtered stream, markers out.
-    const fullResponse = (safeOut + rest).trimEnd();
+    let fullResponse = (safeOut + rest).trimEnd();
+    // The model sometimes sends an ACTIONS line with no prose at all; the
+    // user must never wonder whether anything happened.
+    if (!fullResponse && chatOps.length > 0 && !clientGone) {
+      fullResponse = "Done — the board's updated. Take a look.";
+      if (!res.writableEnded) {
+        res.write(`data: ${JSON.stringify({ content: fullResponse })}\n\n`);
+      }
+    }
 
     if (fullResponse && !isDemo && !clientGone) {
       await db.insert(nlMessages).values({
