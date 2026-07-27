@@ -582,6 +582,204 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorMessage"
+  /nextleap/boards/{token}/pins/{pinId}:
+    patch:
+      operationId: updateLeapPin
+      tags: [nextleap]
+      summary: Edit a pin's title or reason directly
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pinId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NlPinUpdate"
+      responses:
+        "200":
+          description: Updated pin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NlPin"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+    delete:
+      operationId: deleteLeapPin
+      tags: [nextleap]
+      summary: Delete a pin along with its chat thread and checklist
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pinId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+  /nextleap/boards/{token}/pins/{pinId}/append:
+    post:
+      operationId: appendLeapPin
+      tags: [nextleap]
+      summary: Add new information to a pin; AI reworks the visual to fold it in
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pinId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NlPinAppend"
+      responses:
+        "200":
+          description: Updated pin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NlPin"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+  /nextleap/boards/{token}/pins/{pinId}/tasks:
+    post:
+      operationId: createLeapPinTask
+      tags: [nextleap]
+      summary: Add a checklist item to a pin
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pinId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NlTaskCreate"
+      responses:
+        "201":
+          description: Created checklist item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NlTask"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+  /nextleap/boards/{token}/pins/{pinId}/tasks/{taskId}:
+    patch:
+      operationId: updateLeapPinTask
+      tags: [nextleap]
+      summary: Tick, untick, or relabel a checklist item
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pinId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NlTaskUpdate"
+      responses:
+        "200":
+          description: Updated checklist item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NlTask"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+    delete:
+      operationId: deleteLeapPinTask
+      tags: [nextleap]
+      summary: Remove a checklist item
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pinId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
   /nextleap/boards/{token}/checkins:
     post:
       operationId: createLeapCheckin
@@ -1252,6 +1450,11 @@ components:
           type: string
         content:
           type: string
+        options:
+          type: ["array", "null"]
+          description: Tap-to-answer choices offered with this assistant turn
+          items:
+            type: string
         createdAt:
           type: string
           format: date-time
@@ -1260,6 +1463,7 @@ components:
         - boardId
         - pinId
         - moveId
+        - options
         - role
         - content
         - createdAt
@@ -1318,12 +1522,18 @@ components:
           description: Main thread messages, oldest first
           items:
             $ref: "#/components/schemas/NlMessage"
+        tasks:
+          type: array
+          description: Checklist items across all pins on the board
+          items:
+            $ref: "#/components/schemas/NlTask"
       required:
         - board
         - pins
         - moves
         - checkins
         - messages
+        - tasks
     NlBoardInput:
       type: object
       properties:
@@ -1353,6 +1563,11 @@ components:
         say:
           type: string
           description: The coach's reply - acknowledgment plus next question, or the wrap-up
+        options:
+          type: ["array", "null"]
+          description: Tap-to-answer choices for this question, when the answer space is small
+          items:
+            type: string
         stage:
           type: string
           enum: [interview, board]
@@ -1392,6 +1607,69 @@ components:
           minLength: 1
       required:
         - text
+    NlTask:
+      type: object
+      properties:
+        id:
+          type: integer
+        boardId:
+          type: integer
+        pinId:
+          type: integer
+        label:
+          type: string
+        done:
+          type: boolean
+        orderIndex:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - boardId
+        - pinId
+        - label
+        - done
+        - orderIndex
+        - createdAt
+    NlPinUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 80
+        verdictWhy:
+          type: string
+          minLength: 1
+          maxLength: 240
+    NlPinAppend:
+      type: object
+      properties:
+        text:
+          type: string
+          minLength: 1
+      required:
+        - text
+    NlTaskCreate:
+      type: object
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 200
+      required:
+        - label
+    NlTaskUpdate:
+      type: object
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 200
+        done:
+          type: boolean
     NlCheckinInput:
       type: object
       properties:

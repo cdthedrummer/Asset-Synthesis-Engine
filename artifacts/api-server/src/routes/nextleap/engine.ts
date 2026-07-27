@@ -7,9 +7,11 @@ import {
   nlMessages,
   nlMoves,
   nlPins,
+  nlTasks,
   type NlBoard,
   type NlMove,
   type NlPin,
+  type NlTask,
 } from "@workspace/db";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { logger } from "../../lib/logger";
@@ -37,6 +39,18 @@ function clamp(n: unknown, lo: number, hi: number, fallback: number): number {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return fallback;
   return Math.min(hi, Math.max(lo, v));
+}
+
+// Tap-to-answer choices coming back from the model. One shape everywhere:
+// interview turns and chat threads both reduce to string[] (2-4, short) or null.
+export function sanitizeOptions(raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return null;
+  const cleaned = raw
+    .filter((o): o is string => typeof o === "string")
+    .map((o) => o.trim())
+    .filter((o) => o.length > 0 && o.length <= 60);
+  const unique = [...new Set(cleaned)].slice(0, 4);
+  return unique.length >= 2 ? unique : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -79,10 +93,11 @@ export interface LeapState {
   moves: NlMove[];
   checkins: (typeof nlCheckins.$inferSelect)[];
   mainMessages: (typeof nlMessages.$inferSelect)[];
+  tasks: NlTask[];
 }
 
 export async function loadState(board: NlBoard): Promise<LeapState> {
-  const [pins, moves, checkins, mainMessages] = await Promise.all([
+  const [pins, moves, checkins, mainMessages, tasks] = await Promise.all([
     db
       .select()
       .from(nlPins)
@@ -109,12 +124,23 @@ export async function loadState(board: NlBoard): Promise<LeapState> {
         ),
       )
       .orderBy(asc(nlMessages.createdAt)),
+    db
+      .select()
+      .from(nlTasks)
+      .where(eq(nlTasks.boardId, board.id))
+      .orderBy(asc(nlTasks.orderIndex), asc(nlTasks.id)),
   ]);
-  return { board, pins, moves, checkins, mainMessages };
+  return { board, pins, moves, checkins, mainMessages, tasks };
 }
 
 export function boardSnapshot(state: LeapState): string {
   const { board, pins, moves } = state;
+  const tasksByPin = new Map<number, { label: string; done: boolean }[]>();
+  for (const t of state.tasks) {
+    const list = tasksByPin.get(t.pinId) ?? [];
+    list.push({ label: t.label, done: t.done });
+    tasksByPin.set(t.pinId, list);
+  }
   return JSON.stringify({
     name: board.name || null,
     door: board.door,
@@ -135,6 +161,7 @@ export function boardSnapshot(state: LeapState): string {
       kind: p.kind,
       vizData: p.vizData,
       verifyYourself: p.verifyYourself,
+      checklist: tasksByPin.get(p.id),
     })),
     moves: moves.map((m) => ({
       id: m.id,
@@ -452,6 +479,7 @@ INTERVIEW RULES:
 - You've asked ${questionsAsked} questions so far. Aim for 6-8 total, then finish. At 8 you MUST finish. Don't drag it out once the picture is clear.
 - Early on (first two questions, woven in naturally, not as a form): find out how much they've used AI tools like ChatGPT for real work, and how confident they are in the craft their leap needs. Emit the intake op when an answer tells you.
 - Ask for numbers. "How many orders last month?" beats "how's it going?". If an answer is vague, push once — sharp friends don't accept "pretty good".
+- When a question's answer space is genuinely small — either/or forks, ranges, "how much have you used AI" — include "options": 2-4 tap-to-answer choices, each under 40 chars. Most questions should NOT have options: never use them when the real answer is a number or a story only they know. Typing always stays open, so options invite, never box in.
 - ${NO_JARGON}
 - Every turn: 1-3 ops. Pins should carry THEIR numbers, names, prices, days. A pin with invented data is worse than no pin.
 - A tight board beats a full one: aim for 6-9 pins TOTAL by the end. Before adding a pin, ask whether an existing one should be updated (upsert by its exact title) or touched instead. Merge near-duplicates into the stronger pin.
@@ -462,7 +490,7 @@ FINISHING (done:true):
 - Moves: small, cheap, reversible, each finishable within 48 hours. The board shows them big — your say should NOT list them. Your final say: one-line read of their situation, then hand them the board. Three sentences max.
 - The bet is the "I'd bet you abandon this first" beat — one sentence, warm, specific, the kind of call-out a friend earns the right to make.
 
-Reply with ONLY a JSON object: {"say":"plain text, no markdown","done":false,"ops":[...]}`;
+Reply with ONLY a JSON object: {"say":"plain text, no markdown","done":false,"options":["tap answer", ...]|null,"ops":[...]}`;
 }
 
 export function checkinSystem(state: LeapState): string {
@@ -496,6 +524,31 @@ Rules: use ONLY facts in their text — no invented numbers (a "stat" pin with t
 Reply with ONLY: {"pin":{"title","verdict":"start"|"schedule"|"skip"|"gethelp","verdictWhy","difficulty":1-10,"impact":1-10,"kind":"steps"|"pipeline"|"menu"|"table"|"calendar"|"bars"|"stat","vizData":{...},"verifyYourself":boolean}}`;
 }
 
+export function appendPinSystem(state: LeapState, pin: NlPin): string {
+  return `${COACH_VOICE}
+
+${state.board.name || "The owner"} wants to add new information to ONE existing pin on their board. Fold it in: update the numbers, steps, or facts the pin shows so the visual stays current — don't start over unless the new info truly replaces the old.
+
+The pin today: ${JSON.stringify({
+    title: pin.title,
+    verdict: pin.verdict,
+    verdictWhy: pin.verdictWhy,
+    difficulty: pin.difficulty,
+    impact: pin.impact,
+    kind: pin.kind,
+    vizData: pin.vizData,
+    detail: pin.detail,
+    verifyYourself: pin.verifyYourself,
+  })}
+Their board, for context: ${boardSnapshot(state)}
+
+${VIZ_SPEC}
+
+Rules: keep the same kind unless the new info clearly demands another template. Return the FULL updated pin — anything you leave out is lost, so carry over detail and facts that still hold. Use ONLY facts they gave — never invent numbers. If the new info honestly changes the verdict's logic, update verdict and verdictWhy. If it smells legal/license/permit/tax/insurance: verifyYourself true. ${NO_JARGON}
+
+Reply with ONLY: {"pin":{"title","verdict":"start"|"schedule"|"skip"|"gethelp","verdictWhy","difficulty":1-10,"impact":1-10,"kind":"steps"|"pipeline"|"menu"|"table"|"calendar"|"bars"|"stat","vizData":{...},"detail":{...}|null,"verifyYourself":boolean}}`;
+}
+
 export function chatSystem(
   state: LeapState,
   scope: { pin?: NlPin; move?: NlMove },
@@ -504,7 +557,9 @@ export function chatSystem(
 
 You're in an ongoing thread with ${state.board.name || "the board's owner"} about their leap. Full board: ${boardSnapshot(state)}
 
-Plain text only — no markdown headings, no bullet cascades. Under 120 words unless you're drafting something for them. ${NO_JARGON}`;
+Plain text only — no markdown headings, no bullet cascades. Under 120 words unless you're drafting something for them. ${NO_JARGON}
+
+If your reply ends by asking them to pick between a few concrete paths (by zip vs by city, formal vs casual), put the choices on ONE final line by themselves, exactly like: OPTIONS: ["by zip","by city","whole region"] — 2-4 choices, each under 40 chars, valid JSON, nothing after it. That line is stripped out and becomes tap buttons. Only when a genuine fork exists — never bolt it onto an open question.`;
 
   if (scope.move) {
     const m = scope.move;
@@ -537,7 +592,7 @@ This thread is about ONE pin: ${JSON.stringify({
       vizData: p.vizData,
       verifyYourself: p.verifyYourself,
     })}.
-They may argue with the verdict — good. Defend it with the reason it was made. Concede specifics when they bring facts you didn't have; say plainly what fact would flip the verdict. You can't change the board from here — verdicts move at check-in, when claims meet evidence. If they've genuinely changed the facts, tell them to check in and the board will re-score.
+They may argue with the verdict — good. Defend it with the reason it was made. Concede specifics when they bring facts you didn't have; say plainly what fact would flip the verdict. This chat can't rewrite the pin by itself — verdicts move when claims meet evidence. If they bring a real new fact, point them at "Add info" right above this thread to fold it into the pin, or a check-in to re-score the whole board.
 ${p.verifyYourself ? "This pin is verify-yourself territory (legal/license/permit). Point at official sources or a qualified human. Do not play inspector." : ""}`;
   }
 

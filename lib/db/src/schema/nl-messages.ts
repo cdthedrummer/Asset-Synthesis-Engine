@@ -1,5 +1,6 @@
 import {
   integer,
+  jsonb,
   pgTable,
   serial,
   text,
@@ -25,6 +26,8 @@ export const nlMessages = pgTable("nl_messages", {
   }),
   role: text("role").notNull(), // user | assistant
   content: text("content").notNull(),
+  // Tap-to-answer choices offered alongside an assistant turn (string[] | null).
+  options: jsonb("options"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

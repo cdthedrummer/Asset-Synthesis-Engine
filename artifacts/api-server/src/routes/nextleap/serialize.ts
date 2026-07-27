@@ -4,6 +4,7 @@ import type {
   NlMessage,
   NlMove,
   NlPin,
+  NlTask,
 } from "@workspace/db";
 
 export function serializeNlBoard(b: NlBoard) {
@@ -67,7 +68,20 @@ export function serializeNlMessage(m: NlMessage) {
     moveId: m.moveId ?? null,
     role: m.role,
     content: m.content,
+    options: (m.options as string[] | null) ?? null,
     createdAt: m.createdAt.toISOString(),
+  };
+}
+
+export function serializeNlTask(t: NlTask) {
+  return {
+    id: t.id,
+    boardId: t.boardId,
+    pinId: t.pinId,
+    label: t.label,
+    done: t.done,
+    orderIndex: t.orderIndex,
+    createdAt: t.createdAt.toISOString(),
   };
 }
 

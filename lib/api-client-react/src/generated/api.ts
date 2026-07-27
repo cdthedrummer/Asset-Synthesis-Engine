@@ -41,7 +41,12 @@ import type {
   NlMove,
   NlMoveUpdate,
   NlPin,
+  NlPinAppend,
   NlPinQuickAdd,
+  NlPinUpdate,
+  NlTask,
+  NlTaskCreate,
+  NlTaskUpdate,
   OpenaiConversation,
   OpenaiConversationInput,
   OpenaiConversationWithMessages,
@@ -2041,6 +2046,452 @@ export const useQuickAddLeapPin = <TError = ErrorType<ApiErrorMessage>,
         TContext
       > => {
       return useMutation(getQuickAddLeapPinMutationOptions(options));
+    }
+
+export const getUpdateLeapPinUrl = (token: string,
+    pinId: number,) => {
+
+
+
+
+  return `/api/nextleap/boards/${token}/pins/${pinId}`
+}
+
+/**
+ * @summary Edit a pin's title or reason directly
+ */
+export const updateLeapPin = async (token: string,
+    pinId: number,
+    nlPinUpdate: NlPinUpdate, options?: RequestInit): Promise<NlPin> => {
+
+  return customFetch<NlPin>(getUpdateLeapPinUrl(token,pinId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(nlPinUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateLeapPinMutationOptions = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLeapPin>>, TError,{token: string;pinId: number;data: BodyType<NlPinUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateLeapPin>>, TError,{token: string;pinId: number;data: BodyType<NlPinUpdate>}, TContext> => {
+
+const mutationKey = ['updateLeapPin'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateLeapPin>>, {token: string;pinId: number;data: BodyType<NlPinUpdate>}> = (props) => {
+          const {token,pinId,data} = props ?? {};
+
+          return  updateLeapPin(token,pinId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateLeapPinMutationResult = NonNullable<Awaited<ReturnType<typeof updateLeapPin>>>
+    export type UpdateLeapPinMutationBody = BodyType<NlPinUpdate>
+    export type UpdateLeapPinMutationError = ErrorType<ApiErrorMessage>
+
+    /**
+ * @summary Edit a pin's title or reason directly
+ */
+export const useUpdateLeapPin = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLeapPin>>, TError,{token: string;pinId: number;data: BodyType<NlPinUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateLeapPin>>,
+        TError,
+        {token: string;pinId: number;data: BodyType<NlPinUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateLeapPinMutationOptions(options));
+    }
+
+export const getDeleteLeapPinUrl = (token: string,
+    pinId: number,) => {
+
+
+
+
+  return `/api/nextleap/boards/${token}/pins/${pinId}`
+}
+
+/**
+ * @summary Delete a pin along with its chat thread and checklist
+ */
+export const deleteLeapPin = async (token: string,
+    pinId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteLeapPinUrl(token,pinId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteLeapPinMutationOptions = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLeapPin>>, TError,{token: string;pinId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteLeapPin>>, TError,{token: string;pinId: number}, TContext> => {
+
+const mutationKey = ['deleteLeapPin'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteLeapPin>>, {token: string;pinId: number}> = (props) => {
+          const {token,pinId} = props ?? {};
+
+          return  deleteLeapPin(token,pinId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteLeapPinMutationResult = NonNullable<Awaited<ReturnType<typeof deleteLeapPin>>>
+
+    export type DeleteLeapPinMutationError = ErrorType<ApiErrorMessage>
+
+    /**
+ * @summary Delete a pin along with its chat thread and checklist
+ */
+export const useDeleteLeapPin = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLeapPin>>, TError,{token: string;pinId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteLeapPin>>,
+        TError,
+        {token: string;pinId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteLeapPinMutationOptions(options));
+    }
+
+export const getAppendLeapPinUrl = (token: string,
+    pinId: number,) => {
+
+
+
+
+  return `/api/nextleap/boards/${token}/pins/${pinId}/append`
+}
+
+/**
+ * @summary Add new information to a pin; AI reworks the visual to fold it in
+ */
+export const appendLeapPin = async (token: string,
+    pinId: number,
+    nlPinAppend: NlPinAppend, options?: RequestInit): Promise<NlPin> => {
+
+  return customFetch<NlPin>(getAppendLeapPinUrl(token,pinId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(nlPinAppend)
+  }
+);}
+
+
+
+
+
+export const getAppendLeapPinMutationOptions = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof appendLeapPin>>, TError,{token: string;pinId: number;data: BodyType<NlPinAppend>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof appendLeapPin>>, TError,{token: string;pinId: number;data: BodyType<NlPinAppend>}, TContext> => {
+
+const mutationKey = ['appendLeapPin'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof appendLeapPin>>, {token: string;pinId: number;data: BodyType<NlPinAppend>}> = (props) => {
+          const {token,pinId,data} = props ?? {};
+
+          return  appendLeapPin(token,pinId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AppendLeapPinMutationResult = NonNullable<Awaited<ReturnType<typeof appendLeapPin>>>
+    export type AppendLeapPinMutationBody = BodyType<NlPinAppend>
+    export type AppendLeapPinMutationError = ErrorType<ApiErrorMessage>
+
+    /**
+ * @summary Add new information to a pin; AI reworks the visual to fold it in
+ */
+export const useAppendLeapPin = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof appendLeapPin>>, TError,{token: string;pinId: number;data: BodyType<NlPinAppend>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof appendLeapPin>>,
+        TError,
+        {token: string;pinId: number;data: BodyType<NlPinAppend>},
+        TContext
+      > => {
+      return useMutation(getAppendLeapPinMutationOptions(options));
+    }
+
+export const getCreateLeapPinTaskUrl = (token: string,
+    pinId: number,) => {
+
+
+
+
+  return `/api/nextleap/boards/${token}/pins/${pinId}/tasks`
+}
+
+/**
+ * @summary Add a checklist item to a pin
+ */
+export const createLeapPinTask = async (token: string,
+    pinId: number,
+    nlTaskCreate: NlTaskCreate, options?: RequestInit): Promise<NlTask> => {
+
+  return customFetch<NlTask>(getCreateLeapPinTaskUrl(token,pinId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(nlTaskCreate)
+  }
+);}
+
+
+
+
+
+export const getCreateLeapPinTaskMutationOptions = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLeapPinTask>>, TError,{token: string;pinId: number;data: BodyType<NlTaskCreate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createLeapPinTask>>, TError,{token: string;pinId: number;data: BodyType<NlTaskCreate>}, TContext> => {
+
+const mutationKey = ['createLeapPinTask'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLeapPinTask>>, {token: string;pinId: number;data: BodyType<NlTaskCreate>}> = (props) => {
+          const {token,pinId,data} = props ?? {};
+
+          return  createLeapPinTask(token,pinId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateLeapPinTaskMutationResult = NonNullable<Awaited<ReturnType<typeof createLeapPinTask>>>
+    export type CreateLeapPinTaskMutationBody = BodyType<NlTaskCreate>
+    export type CreateLeapPinTaskMutationError = ErrorType<ApiErrorMessage>
+
+    /**
+ * @summary Add a checklist item to a pin
+ */
+export const useCreateLeapPinTask = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLeapPinTask>>, TError,{token: string;pinId: number;data: BodyType<NlTaskCreate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createLeapPinTask>>,
+        TError,
+        {token: string;pinId: number;data: BodyType<NlTaskCreate>},
+        TContext
+      > => {
+      return useMutation(getCreateLeapPinTaskMutationOptions(options));
+    }
+
+export const getUpdateLeapPinTaskUrl = (token: string,
+    pinId: number,
+    taskId: number,) => {
+
+
+
+
+  return `/api/nextleap/boards/${token}/pins/${pinId}/tasks/${taskId}`
+}
+
+/**
+ * @summary Tick, untick, or relabel a checklist item
+ */
+export const updateLeapPinTask = async (token: string,
+    pinId: number,
+    taskId: number,
+    nlTaskUpdate: NlTaskUpdate, options?: RequestInit): Promise<NlTask> => {
+
+  return customFetch<NlTask>(getUpdateLeapPinTaskUrl(token,pinId,taskId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(nlTaskUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateLeapPinTaskMutationOptions = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLeapPinTask>>, TError,{token: string;pinId: number;taskId: number;data: BodyType<NlTaskUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateLeapPinTask>>, TError,{token: string;pinId: number;taskId: number;data: BodyType<NlTaskUpdate>}, TContext> => {
+
+const mutationKey = ['updateLeapPinTask'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateLeapPinTask>>, {token: string;pinId: number;taskId: number;data: BodyType<NlTaskUpdate>}> = (props) => {
+          const {token,pinId,taskId,data} = props ?? {};
+
+          return  updateLeapPinTask(token,pinId,taskId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateLeapPinTaskMutationResult = NonNullable<Awaited<ReturnType<typeof updateLeapPinTask>>>
+    export type UpdateLeapPinTaskMutationBody = BodyType<NlTaskUpdate>
+    export type UpdateLeapPinTaskMutationError = ErrorType<ApiErrorMessage>
+
+    /**
+ * @summary Tick, untick, or relabel a checklist item
+ */
+export const useUpdateLeapPinTask = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLeapPinTask>>, TError,{token: string;pinId: number;taskId: number;data: BodyType<NlTaskUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateLeapPinTask>>,
+        TError,
+        {token: string;pinId: number;taskId: number;data: BodyType<NlTaskUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateLeapPinTaskMutationOptions(options));
+    }
+
+export const getDeleteLeapPinTaskUrl = (token: string,
+    pinId: number,
+    taskId: number,) => {
+
+
+
+
+  return `/api/nextleap/boards/${token}/pins/${pinId}/tasks/${taskId}`
+}
+
+/**
+ * @summary Remove a checklist item
+ */
+export const deleteLeapPinTask = async (token: string,
+    pinId: number,
+    taskId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteLeapPinTaskUrl(token,pinId,taskId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteLeapPinTaskMutationOptions = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLeapPinTask>>, TError,{token: string;pinId: number;taskId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteLeapPinTask>>, TError,{token: string;pinId: number;taskId: number}, TContext> => {
+
+const mutationKey = ['deleteLeapPinTask'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteLeapPinTask>>, {token: string;pinId: number;taskId: number}> = (props) => {
+          const {token,pinId,taskId} = props ?? {};
+
+          return  deleteLeapPinTask(token,pinId,taskId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteLeapPinTaskMutationResult = NonNullable<Awaited<ReturnType<typeof deleteLeapPinTask>>>
+
+    export type DeleteLeapPinTaskMutationError = ErrorType<ApiErrorMessage>
+
+    /**
+ * @summary Remove a checklist item
+ */
+export const useDeleteLeapPinTask = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLeapPinTask>>, TError,{token: string;pinId: number;taskId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteLeapPinTask>>,
+        TError,
+        {token: string;pinId: number;taskId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteLeapPinTaskMutationOptions(options));
     }
 
 export const getCreateLeapCheckinUrl = (token: string,) => {

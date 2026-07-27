@@ -477,8 +477,18 @@ export const CreateLeapBoardResponse = zod.object({
   "moveId": zod.number().nullable(),
   "role": zod.string(),
   "content": zod.string(),
+  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer choices offered with this assistant turn'),
   "createdAt": zod.coerce.date()
-})).describe('Main thread messages, oldest first')
+})).describe('Main thread messages, oldest first'),
+  "tasks": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number(),
+  "label": zod.string(),
+  "done": zod.boolean(),
+  "orderIndex": zod.number(),
+  "createdAt": zod.coerce.date()
+})).describe('Checklist items across all pins on the board')
 })
 
 
@@ -554,8 +564,18 @@ export const GetLeapBoardResponse = zod.object({
   "moveId": zod.number().nullable(),
   "role": zod.string(),
   "content": zod.string(),
+  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer choices offered with this assistant turn'),
   "createdAt": zod.coerce.date()
-})).describe('Main thread messages, oldest first')
+})).describe('Main thread messages, oldest first'),
+  "tasks": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number(),
+  "label": zod.string(),
+  "done": zod.boolean(),
+  "orderIndex": zod.number(),
+  "createdAt": zod.coerce.date()
+})).describe('Checklist items across all pins on the board')
 })
 
 
@@ -575,6 +595,7 @@ export const AnswerLeapInterviewBody = zod.object({
 
 export const AnswerLeapInterviewResponse = zod.object({
   "say": zod.string().describe('The coach\'s reply - acknowledgment plus next question, or the wrap-up'),
+  "options": zod.array(zod.string()).nullish().describe('Tap-to-answer choices for this question, when the answer space is small'),
   "stage": zod.enum(['interview', 'board']),
   "newPinIds": zod.array(zod.number()),
   "touchedPinIds": zod.array(zod.number()),
@@ -643,8 +664,18 @@ export const AnswerLeapInterviewResponse = zod.object({
   "moveId": zod.number().nullable(),
   "role": zod.string(),
   "content": zod.string(),
+  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer choices offered with this assistant turn'),
   "createdAt": zod.coerce.date()
-})).describe('Main thread messages, oldest first')
+})).describe('Main thread messages, oldest first'),
+  "tasks": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number(),
+  "label": zod.string(),
+  "done": zod.boolean(),
+  "orderIndex": zod.number(),
+  "createdAt": zod.coerce.date()
+})).describe('Checklist items across all pins on the board')
 })
 })
 
@@ -683,6 +714,7 @@ export const ListLeapPinMessagesResponseItem = zod.object({
   "moveId": zod.number().nullable(),
   "role": zod.string(),
   "content": zod.string(),
+  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer choices offered with this assistant turn'),
   "createdAt": zod.coerce.date()
 })
 export const ListLeapPinMessagesResponse = zod.array(ListLeapPinMessagesResponseItem)
@@ -703,6 +735,7 @@ export const ListLeapMoveMessagesResponseItem = zod.object({
   "moveId": zod.number().nullable(),
   "role": zod.string(),
   "content": zod.string(),
+  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer choices offered with this assistant turn'),
   "createdAt": zod.coerce.date()
 })
 export const ListLeapMoveMessagesResponse = zod.array(ListLeapMoveMessagesResponseItem)
@@ -738,6 +771,155 @@ export const QuickAddLeapPinResponse = zod.object({
   "lastTouchedAt": zod.coerce.date().describe('Drives recency sort and the tiny recency stamp'),
   "createdAt": zod.coerce.date()
 })
+
+
+/**
+ * @summary Edit a pin's title or reason directly
+ */
+export const UpdateLeapPinParams = zod.object({
+  "token": zod.coerce.string(),
+  "pinId": zod.coerce.number()
+})
+
+export const updateLeapPinBodyTitleMax = 80;
+
+export const updateLeapPinBodyVerdictWhyMax = 240;
+
+
+
+export const UpdateLeapPinBody = zod.object({
+  "title": zod.string().min(1).max(updateLeapPinBodyTitleMax).optional(),
+  "verdictWhy": zod.string().min(1).max(updateLeapPinBodyVerdictWhyMax).optional()
+})
+
+export const UpdateLeapPinResponse = zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "title": zod.string().describe('Internal name; the board shows only the visual, title appears in drill-down'),
+  "verdict": zod.enum(['start', 'schedule', 'skip', 'gethelp']),
+  "verdictWhy": zod.string().describe('One-or-two sentence blunt reason shown in the verdict popover'),
+  "difficulty": zod.number().describe('1-10 personal difficulty'),
+  "impact": zod.number().describe('1-10 twelve-month impact'),
+  "kind": zod.enum(['steps', 'pipeline', 'menu', 'table', 'calendar', 'bars', 'stat']).describe('Which self-identifying infographic template renders this pin'),
+  "vizData": zod.record(zod.string(), zod.unknown()).describe('Template-specific payload the pin renders from'),
+  "detail": zod.record(zod.string(), zod.unknown()).nullable().describe('Second drill level - expanded chart\/timeline payload'),
+  "verifyYourself": zod.boolean().describe('True for license\/permit items the user must verify with authorities'),
+  "relatedPinIds": zod.array(zod.number()),
+  "lastTouchedAt": zod.coerce.date().describe('Drives recency sort and the tiny recency stamp'),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a pin along with its chat thread and checklist
+ */
+export const DeleteLeapPinParams = zod.object({
+  "token": zod.coerce.string(),
+  "pinId": zod.coerce.number()
+})
+
+export const DeleteLeapPinResponse = zod.void()
+
+
+/**
+ * @summary Add new information to a pin; AI reworks the visual to fold it in
+ */
+export const AppendLeapPinParams = zod.object({
+  "token": zod.coerce.string(),
+  "pinId": zod.coerce.number()
+})
+
+
+
+
+export const AppendLeapPinBody = zod.object({
+  "text": zod.string().min(1)
+})
+
+export const AppendLeapPinResponse = zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "title": zod.string().describe('Internal name; the board shows only the visual, title appears in drill-down'),
+  "verdict": zod.enum(['start', 'schedule', 'skip', 'gethelp']),
+  "verdictWhy": zod.string().describe('One-or-two sentence blunt reason shown in the verdict popover'),
+  "difficulty": zod.number().describe('1-10 personal difficulty'),
+  "impact": zod.number().describe('1-10 twelve-month impact'),
+  "kind": zod.enum(['steps', 'pipeline', 'menu', 'table', 'calendar', 'bars', 'stat']).describe('Which self-identifying infographic template renders this pin'),
+  "vizData": zod.record(zod.string(), zod.unknown()).describe('Template-specific payload the pin renders from'),
+  "detail": zod.record(zod.string(), zod.unknown()).nullable().describe('Second drill level - expanded chart\/timeline payload'),
+  "verifyYourself": zod.boolean().describe('True for license\/permit items the user must verify with authorities'),
+  "relatedPinIds": zod.array(zod.number()),
+  "lastTouchedAt": zod.coerce.date().describe('Drives recency sort and the tiny recency stamp'),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Add a checklist item to a pin
+ */
+export const CreateLeapPinTaskParams = zod.object({
+  "token": zod.coerce.string(),
+  "pinId": zod.coerce.number()
+})
+
+export const createLeapPinTaskBodyLabelMax = 200;
+
+
+
+export const CreateLeapPinTaskBody = zod.object({
+  "label": zod.string().min(1).max(createLeapPinTaskBodyLabelMax)
+})
+
+export const CreateLeapPinTaskResponse = zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number(),
+  "label": zod.string(),
+  "done": zod.boolean(),
+  "orderIndex": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Tick, untick, or relabel a checklist item
+ */
+export const UpdateLeapPinTaskParams = zod.object({
+  "token": zod.coerce.string(),
+  "pinId": zod.coerce.number(),
+  "taskId": zod.coerce.number()
+})
+
+export const updateLeapPinTaskBodyLabelMax = 200;
+
+
+
+export const UpdateLeapPinTaskBody = zod.object({
+  "label": zod.string().min(1).max(updateLeapPinTaskBodyLabelMax).optional(),
+  "done": zod.boolean().optional()
+})
+
+export const UpdateLeapPinTaskResponse = zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number(),
+  "label": zod.string(),
+  "done": zod.boolean(),
+  "orderIndex": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Remove a checklist item
+ */
+export const DeleteLeapPinTaskParams = zod.object({
+  "token": zod.coerce.string(),
+  "pinId": zod.coerce.number(),
+  "taskId": zod.coerce.number()
+})
+
+export const DeleteLeapPinTaskResponse = zod.void()
 
 
 /**
@@ -829,8 +1011,18 @@ export const CreateLeapCheckinResponse = zod.object({
   "moveId": zod.number().nullable(),
   "role": zod.string(),
   "content": zod.string(),
+  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer choices offered with this assistant turn'),
   "createdAt": zod.coerce.date()
-})).describe('Main thread messages, oldest first')
+})).describe('Main thread messages, oldest first'),
+  "tasks": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number(),
+  "label": zod.string(),
+  "done": zod.boolean(),
+  "orderIndex": zod.number(),
+  "createdAt": zod.coerce.date()
+})).describe('Checklist items across all pins on the board')
 })
 })
 

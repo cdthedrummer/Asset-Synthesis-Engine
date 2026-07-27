@@ -10,6 +10,7 @@ import type { NlCheckin } from './nlCheckin';
 import type { NlMessage } from './nlMessage';
 import type { NlMove } from './nlMove';
 import type { NlPin } from './nlPin';
+import type { NlTask } from './nlTask';
 
 export interface NlBoardState {
   board: NlBoard;
@@ -18,4 +19,6 @@ export interface NlBoardState {
   checkins: NlCheckin[];
   /** Main thread messages, oldest first */
   messages: NlMessage[];
+  /** Checklist items across all pins on the board */
+  tasks: NlTask[];
 }

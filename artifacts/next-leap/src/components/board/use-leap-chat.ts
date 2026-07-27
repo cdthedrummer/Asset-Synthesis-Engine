@@ -2,8 +2,9 @@ import React from 'react';
 import { NlMessage } from '@workspace/api-client-react';
 
 /**
- * Shared chat state + SSE streaming for pin "argue" chats and move rep sessions.
+ * Shared chat state + SSE streaming for pin threads and move rep sessions.
  * Callers load history with the matching generated query hook and pass it in.
+ * `options` carries tap-to-answer chips for the latest assistant turn.
  */
 export function useLeapChat({
   token,
@@ -22,13 +23,23 @@ export function useLeapChat({
   const [streamContent, setStreamContent] = React.useState('');
   const [isStreaming, setIsStreaming] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [options, setOptions] = React.useState<string[] | null>(null);
   const loadedRef = React.useRef(false);
 
   React.useEffect(() => {
     if (initialMessages && !loadedRef.current) {
       loadedRef.current = true;
       // Never clobber messages the user already sent while history was loading.
-      setMessages(prev => (prev.length === 0 ? initialMessages : [...initialMessages, ...prev]));
+      setMessages(prev => {
+        if (prev.length === 0) {
+          const last = initialMessages[initialMessages.length - 1];
+          if (last?.role === 'assistant' && last.options?.length) {
+            setOptions(last.options);
+          }
+          return initialMessages;
+        }
+        return [...initialMessages, ...prev];
+      });
     }
   }, [initialMessages]);
 
@@ -37,9 +48,10 @@ export function useLeapChat({
     setError(null);
     setIsStreaming(true);
     setStreamContent('');
+    setOptions(null);
     setMessages(prev => [
       ...prev,
-      { id: Date.now(), role: 'user', content, boardId, pinId: pinId ?? null, moveId: moveId ?? null, createdAt: new Date().toISOString() } as NlMessage,
+      { id: Date.now(), role: 'user', content, boardId, pinId: pinId ?? null, moveId: moveId ?? null, options: null, createdAt: new Date().toISOString() } as unknown as NlMessage,
     ]);
 
     try {
@@ -57,6 +69,7 @@ export function useLeapChat({
       let done = false;
       let acc = '';
       let streamError: string | null = null;
+      let streamOptions: string[] | null = null;
 
       while (!done) {
         const { value, done: readerDone } = await reader.read();
@@ -69,7 +82,7 @@ export function useLeapChat({
         for (const event of events) {
           for (const line of event.split('\n')) {
             if (!line.startsWith('data: ')) continue;
-            let data: { done?: boolean; content?: string; error?: string };
+            let data: { done?: boolean; content?: string; error?: string; options?: string[] };
             try {
               data = JSON.parse(line.slice(6));
             } catch {
@@ -77,6 +90,9 @@ export function useLeapChat({
             }
             if (data.error) {
               streamError = data.error;
+            }
+            if (Array.isArray(data.options) && data.options.length > 0) {
+              streamOptions = data.options;
             }
             if (data.done) {
               done = true;
@@ -88,15 +104,17 @@ export function useLeapChat({
         }
       }
 
-      if (acc.trim()) {
+      const finalContent = acc.replace(/\s+$/, '');
+      if (finalContent) {
         setMessages(prev => [
           ...prev,
-          { id: Date.now() + 1, role: 'assistant', content: acc, boardId, pinId: pinId ?? null, moveId: moveId ?? null, createdAt: new Date().toISOString() } as NlMessage,
+          { id: Date.now() + 1, role: 'assistant', content: finalContent, boardId, pinId: pinId ?? null, moveId: moveId ?? null, options: streamOptions, createdAt: new Date().toISOString() } as unknown as NlMessage,
         ]);
       }
+      if (streamOptions) setOptions(streamOptions);
       if (streamError) {
         setError(streamError);
-      } else if (!acc.trim()) {
+      } else if (!finalContent) {
         setError('No answer came back — try again.');
       }
     } catch (err) {
@@ -108,5 +126,5 @@ export function useLeapChat({
     }
   };
 
-  return { messages, streamContent, isStreaming, error, send };
+  return { messages, streamContent, isStreaming, error, options, send };
 }

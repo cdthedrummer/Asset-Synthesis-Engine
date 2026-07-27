@@ -1,5 +1,9 @@
 import { Router, type IRouter } from "express";
-import { asc, and, eq, isNull } from "drizzle-orm";
+import { asc, and, eq, isNull, sql } from "drizzle-orm";
+import {
+  createOptionsLineFilter,
+  stripTrailingOptionsLines,
+} from "./options-stream";
 import {
   db,
   nlBoards,
@@ -7,6 +11,7 @@ import {
   nlMessages,
   nlMoves,
   nlPins,
+  nlTasks,
   type NlBoard,
 } from "@workspace/db";
 import {
@@ -16,11 +21,16 @@ import {
   QuickAddLeapPinBody,
   CreateLeapCheckinBody,
   UpdateLeapMoveBody,
+  UpdateLeapPinBody,
+  AppendLeapPinBody,
+  CreateLeapPinTaskBody,
+  UpdateLeapPinTaskBody,
 } from "@workspace/api-zod";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { logger } from "../../lib/logger";
 import {
   LEAP_MODEL,
+  appendPinSystem,
   applyOps,
   boardSnapshot,
   callLeapJson,
@@ -30,6 +40,7 @@ import {
   interviewSystem,
   loadState,
   quickAddSystem,
+  sanitizeOptions,
 } from "./engine";
 import {
   serializeNlBoard,
@@ -37,12 +48,21 @@ import {
   serializeNlMessage,
   serializeNlMove,
   serializeNlPin,
+  serializeNlTask,
 } from "./serialize";
 
 const router: IRouter = Router();
 
 async function findBoard(token: string): Promise<NlBoard | undefined> {
   return db.query.nlBoards.findFirst({ where: eq(nlBoards.token, token) });
+}
+
+async function findPin(boardId: number, pinIdRaw: string | undefined) {
+  const pinId = Number(pinIdRaw);
+  if (!Number.isInteger(pinId)) return undefined;
+  return db.query.nlPins.findFirst({
+    where: and(eq(nlPins.id, pinId), eq(nlPins.boardId, boardId)),
+  });
 }
 
 async function boardStateJson(board: NlBoard) {
@@ -56,6 +76,7 @@ async function boardStateJson(board: NlBoard) {
     moves: state.moves.map(serializeNlMove),
     checkins: state.checkins.map(serializeNlCheckin),
     messages: state.mainMessages.map(serializeNlMessage),
+    tasks: state.tasks.map(serializeNlTask),
   };
 }
 
@@ -99,6 +120,12 @@ router.post("/nextleap/boards", async (req, res) => {
   });
 
   let opening = OPENING_FALLBACK[board.door] ?? OPENING_FALLBACK["ambition"]!;
+  // The fallback opener always asks about AI familiarity — give it tap answers.
+  let openingOptions: string[] | null = [
+    "Never touched them",
+    "Poked around a bit",
+    "Every day",
+  ];
   try {
     const state = await loadState(board);
     const parsed = await callLeapJson([
@@ -107,6 +134,7 @@ router.post("/nextleap/boards", async (req, res) => {
     ]);
     if (typeof parsed["say"] === "string" && parsed["say"].trim()) {
       opening = parsed["say"].trim();
+      openingOptions = sanitizeOptions(parsed["options"]);
       await applyOps(board, parsed["ops"]);
     }
   } catch (err) {
@@ -117,6 +145,7 @@ router.post("/nextleap/boards", async (req, res) => {
     boardId: board.id,
     role: "assistant",
     content: opening,
+    options: openingOptions,
   });
 
   res.status(201).json(await boardStateJson(board));
@@ -167,6 +196,8 @@ router.post("/nextleap/boards/:token/answers", async (req, res) => {
         ? parsed["say"].trim()
         : "Say more — what does that look like in a normal week?";
     const done = parsed["done"] === true;
+    // No tap answers on the wrap-up — the overlay is about to hand over the board.
+    const options = done ? null : sanitizeOptions(parsed["options"]);
     const opsResult = await applyOps(board, parsed["ops"]);
 
     let stage = board.stage;
@@ -212,10 +243,12 @@ router.post("/nextleap/boards/:token/answers", async (req, res) => {
       boardId: board.id,
       role: "assistant",
       content: say,
+      options,
     });
 
     res.json({
       say,
+      options,
       stage,
       newPinIds: opsResult.newPinIds,
       touchedPinIds: opsResult.touchedPinIds,
@@ -310,16 +343,37 @@ router.post("/nextleap/boards/:token/chat", async (req, res) => {
       ],
     });
 
-    let fullResponse = "";
+    // Stream while withholding whatever could still turn out to be a trailing
+    // `OPTIONS: [...]` marker (see options-stream.ts) — even when the model
+    // ends the marker with a newline, raw JSON never flashes at the user.
+    const filter = createOptionsLineFilter();
+    let streamedRaw = "";
     for await (const chunk of stream) {
       // Breaking out of the loop aborts the upstream request.
       if (clientGone) break;
       const content = chunk.choices[0]?.delta?.content;
-      if (content) {
-        fullResponse += content;
-        res.write(`data: ${JSON.stringify({ content })}\n\n`);
+      if (!content) continue;
+      streamedRaw += content;
+      const safe = filter.push(content);
+      if (safe) {
+        res.write(`data: ${JSON.stringify({ content: safe })}\n\n`);
       }
     }
+
+    const { rest, optionsJson } = filter.finish();
+    let options: string[] | null = null;
+    if (optionsJson !== null) {
+      try {
+        options = sanitizeOptions(JSON.parse(optionsJson));
+      } catch {
+        // Malformed marker: drop it silently rather than show raw JSON.
+        options = null;
+      }
+    }
+    if (rest.trim() && !clientGone && !res.writableEnded) {
+      res.write(`data: ${JSON.stringify({ content: rest })}\n\n`);
+    }
+    const fullResponse = stripTrailingOptionsLines(streamedRaw).trimEnd();
 
     if (fullResponse && !isDemo && !clientGone) {
       await db.insert(nlMessages).values({
@@ -328,6 +382,7 @@ router.post("/nextleap/boards/:token/chat", async (req, res) => {
         moveId: move?.id ?? null,
         role: "assistant",
         content: fullResponse,
+        options,
       });
       if (move) {
         await db
@@ -347,6 +402,7 @@ router.post("/nextleap/boards/:token/chat", async (req, res) => {
         .where(eq(nlBoards.id, board.id));
     }
     if (!res.writableEnded) {
+      if (options) res.write(`data: ${JSON.stringify({ options })}\n\n`);
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
     }
@@ -433,6 +489,227 @@ router.post("/nextleap/boards/:token/pins", async (req, res) => {
       .json({ error: "Couldn't place that pin. Say it again, shorter." });
   }
 });
+
+// --- pin management -----------------------------------------------------------
+router.patch("/nextleap/boards/:token/pins/:pinId", async (req, res) => {
+  const board = await findBoard(req.params["token"]!);
+  if (!board) {
+    res.status(404).json({ error: "No board at this link." });
+    return;
+  }
+  if (demoBlocked(board, res)) return;
+  const pin = await findPin(board.id, req.params["pinId"]);
+  if (!pin) {
+    res.status(404).json({ error: "That pin isn't on this board." });
+    return;
+  }
+  const body = UpdateLeapPinBody.parse(req.body);
+  const patch: Partial<typeof nlPins.$inferInsert> = {};
+  if (typeof body.title === "string" && body.title.trim())
+    patch.title = body.title.trim().slice(0, 80);
+  if (typeof body.verdictWhy === "string" && body.verdictWhy.trim())
+    patch.verdictWhy = body.verdictWhy.trim().slice(0, 240);
+  if (Object.keys(patch).length === 0) {
+    res.json(serializeNlPin(pin));
+    return;
+  }
+  const [updated] = await db
+    .update(nlPins)
+    .set({ ...patch, lastTouchedAt: new Date() })
+    .where(eq(nlPins.id, pin.id))
+    .returning();
+  await db
+    .update(nlBoards)
+    .set({ updatedAt: new Date() })
+    .where(eq(nlBoards.id, board.id));
+  res.json(serializeNlPin(updated ?? pin));
+});
+
+router.delete("/nextleap/boards/:token/pins/:pinId", async (req, res) => {
+  const board = await findBoard(req.params["token"]!);
+  if (!board) {
+    res.status(404).json({ error: "No board at this link." });
+    return;
+  }
+  if (demoBlocked(board, res)) return;
+  const pin = await findPin(board.id, req.params["pinId"]);
+  if (!pin) {
+    res.status(404).json({ error: "That pin isn't on this board." });
+    return;
+  }
+  // Chat thread + checklist go with it (FK cascade); moves detach (set null).
+  await db.delete(nlPins).where(eq(nlPins.id, pin.id));
+  // Scrub the id out of sibling related-pin lists and the abandon-bet.
+  const siblings = await db
+    .select()
+    .from(nlPins)
+    .where(eq(nlPins.boardId, board.id));
+  for (const sib of siblings) {
+    const rel = (sib.relatedPinIds as number[] | null) ?? [];
+    if (rel.includes(pin.id))
+      await db
+        .update(nlPins)
+        .set({ relatedPinIds: rel.filter((id) => id !== pin.id) })
+        .where(eq(nlPins.id, sib.id));
+  }
+  const bet = (board.bet ?? null) as Record<string, unknown> | null;
+  const boardPatch: Partial<typeof nlBoards.$inferInsert> = {
+    updatedAt: new Date(),
+  };
+  if (bet && bet["pinId"] === pin.id) {
+    const { pinId: _dropped, ...rest } = bet;
+    boardPatch.bet = rest;
+  }
+  await db.update(nlBoards).set(boardPatch).where(eq(nlBoards.id, board.id));
+  res.status(204).end();
+});
+
+router.post("/nextleap/boards/:token/pins/:pinId/append", async (req, res) => {
+  const board = await findBoard(req.params["token"]!);
+  if (!board) {
+    res.status(404).json({ error: "No board at this link." });
+    return;
+  }
+  if (demoBlocked(board, res)) return;
+  const pin = await findPin(board.id, req.params["pinId"]);
+  if (!pin) {
+    res.status(404).json({ error: "That pin isn't on this board." });
+    return;
+  }
+  const body = AppendLeapPinBody.parse(req.body);
+
+  try {
+    const state = await loadState(board);
+    const parsed = await callLeapJson([
+      { role: "system", content: appendPinSystem(state, pin) },
+      { role: "user", content: body.text },
+    ]);
+    if (!parsed["pin"] || typeof parsed["pin"] !== "object")
+      throw new Error("append produced no pin");
+    await applyOps(board, [
+      { op: "upsertPin", ref: pin.id, pin: parsed["pin"] },
+    ]);
+    const fresh = await db.query.nlPins.findFirst({
+      where: eq(nlPins.id, pin.id),
+    });
+    if (!fresh) throw new Error("pin vanished after append");
+    await db
+      .update(nlBoards)
+      .set({ updatedAt: new Date() })
+      .where(eq(nlBoards.id, board.id));
+    res.json(serializeNlPin(fresh));
+  } catch (err) {
+    logger.error({ err }, "leap pin append failed");
+    res.status(502).json({ error: "Couldn't fold that in. Say it shorter." });
+  }
+});
+
+// --- pin checklist --------------------------------------------------------------
+router.post("/nextleap/boards/:token/pins/:pinId/tasks", async (req, res) => {
+  const board = await findBoard(req.params["token"]!);
+  if (!board) {
+    res.status(404).json({ error: "No board at this link." });
+    return;
+  }
+  if (demoBlocked(board, res)) return;
+  const pin = await findPin(board.id, req.params["pinId"]);
+  if (!pin) {
+    res.status(404).json({ error: "That pin isn't on this board." });
+    return;
+  }
+  const body = CreateLeapPinTaskBody.parse(req.body);
+  const label = body.label.trim().slice(0, 200);
+  if (!label) {
+    res.status(400).json({ error: "Give the task a few words." });
+    return;
+  }
+  // Single-statement append: concurrent adds can't race to the same slot.
+  const [task] = await db
+    .insert(nlTasks)
+    .values({
+      boardId: board.id,
+      pinId: pin.id,
+      label,
+      orderIndex: sql`(select coalesce(max(${nlTasks.orderIndex}), -1) + 1 from ${nlTasks} where ${nlTasks.pinId} = ${pin.id})`,
+    })
+    .returning();
+  if (!task) {
+    res.status(500).json({ error: "Couldn't add that task." });
+    return;
+  }
+  await db
+    .update(nlBoards)
+    .set({ updatedAt: new Date() })
+    .where(eq(nlBoards.id, board.id));
+  res.status(201).json(serializeNlTask(task));
+});
+
+router.patch(
+  "/nextleap/boards/:token/pins/:pinId/tasks/:taskId",
+  async (req, res) => {
+    const board = await findBoard(req.params["token"]!);
+    if (!board) {
+      res.status(404).json({ error: "No board at this link." });
+      return;
+    }
+    if (demoBlocked(board, res)) return;
+    const pin = await findPin(board.id, req.params["pinId"]);
+    if (!pin) {
+      res.status(404).json({ error: "That pin isn't on this board." });
+      return;
+    }
+    const taskId = Number(req.params["taskId"]);
+    const [task] = Number.isInteger(taskId)
+      ? await db
+          .select()
+          .from(nlTasks)
+          .where(and(eq(nlTasks.id, taskId), eq(nlTasks.pinId, pin.id)))
+      : [];
+    if (!task) {
+      res.status(404).json({ error: "That task isn't on this pin." });
+      return;
+    }
+    const body = UpdateLeapPinTaskBody.parse(req.body);
+    const patch: Partial<typeof nlTasks.$inferInsert> = {};
+    if (typeof body.done === "boolean") patch.done = body.done;
+    if (typeof body.label === "string" && body.label.trim())
+      patch.label = body.label.trim().slice(0, 200);
+    if (Object.keys(patch).length === 0) {
+      res.json(serializeNlTask(task));
+      return;
+    }
+    const [updated] = await db
+      .update(nlTasks)
+      .set(patch)
+      .where(eq(nlTasks.id, task.id))
+      .returning();
+    res.json(serializeNlTask(updated ?? task));
+  },
+);
+
+router.delete(
+  "/nextleap/boards/:token/pins/:pinId/tasks/:taskId",
+  async (req, res) => {
+    const board = await findBoard(req.params["token"]!);
+    if (!board) {
+      res.status(404).json({ error: "No board at this link." });
+      return;
+    }
+    if (demoBlocked(board, res)) return;
+    const pin = await findPin(board.id, req.params["pinId"]);
+    if (!pin) {
+      res.status(404).json({ error: "That pin isn't on this board." });
+      return;
+    }
+    const taskId = Number(req.params["taskId"]);
+    if (Number.isInteger(taskId)) {
+      await db
+        .delete(nlTasks)
+        .where(and(eq(nlTasks.id, taskId), eq(nlTasks.pinId, pin.id)));
+    }
+    res.status(204).end();
+  },
+);
 
 // --- check-in -------------------------------------------------------------------
 router.post("/nextleap/boards/:token/checkins", async (req, res) => {

@@ -1,6 +1,7 @@
 ---
-name: Stack gotchas (Orval codegen, Tailwind v4)
-description: Non-obvious failures in the monorepo's OpenAPI codegen and Tailwind v4 theming
+name: Stack gotchas (Orval codegen, Tailwind v4, SSE marker lines)
+description: Non-obvious failures in the monorepo's OpenAPI codegen, Tailwind v4 theming, and SSE streaming of LLM replies with trailing marker lines
 ---
 - Orval emits a colliding `<OperationId>Params` type when a single operation declares BOTH path and query params, and the generated client fails tsc. **Why:** hit while generating the api client for a new feature. **How to apply:** keep api-spec operations path-param-only (split filtered variants into separate paths) or rename operationIds until generated type names are unique.
 - Tailwind v4 `@theme inline` tokens create utilities (e.g. `bg-surface`) but do NOT emit raw `var(--color-*)` custom properties. Styles that reference `var(--color-x)` directly resolve empty (white-on-white cards). **Why:** mockup CSS ported from the canvas sandbox silently broke this way. **How to apply:** when porting mockup styles into an artifact, audit raw `var()` references and define those custom properties in an explicit `:root` block next to the `@theme`.
+- When an LLM reply streams over SSE and ends with a machine-readable marker line (e.g. `OPTIONS: [...]` → tap chips), holding back only the *unterminated* tail leaks the marker whenever the model terminates it with a newline — which it often does. **Why:** code review caught raw marker JSON reaching users and the DB in the first implementation. **How to apply:** withhold the last *non-empty* line (plus trailing whitespace) until more text follows it or the stream ends; on finish, parse the held line for the marker; additionally strip ALL trailing marker lines from the persisted text (double-marker misbehavior). Keep the filter a pure function so it's unit-testable off the server.

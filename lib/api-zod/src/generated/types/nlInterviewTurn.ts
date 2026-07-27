@@ -11,6 +11,11 @@ import type { NlInterviewTurnStage } from './nlInterviewTurnStage';
 export interface NlInterviewTurn {
   /** The coach's reply - acknowledgment plus next question, or the wrap-up */
   say: string;
+  /**
+     * Tap-to-answer choices for this question, when the answer space is small
+     * @nullable
+     */
+  options?: string[] | null;
   stage: NlInterviewTurnStage;
   newPinIds: number[];
   touchedPinIds: number[];

@@ -1,7 +1,9 @@
-# Portfolio Pulse
+# Portfolio Pulse & Next Leap
 
 ## Overview
-A private "living project HQ" for Charlie — a strategist managing ~29 work, personal, and life projects. It gives him a visual portfolio board with blunt AI verdicts, a daily podcast-style AI brief with audio, quick 15-second check-ins, an operating plan (max 3 active bets), and a context-aware AI advisor chat.
+Two products for Charlie, sharing one API server:
+- **Portfolio Pulse** (`/`) — a private "living project HQ": visual portfolio board with blunt AI verdicts, a daily podcast-style AI brief with audio, quick 15-second check-ins, an operating plan (max 3 active bets), and a context-aware AI advisor chat.
+- **Next Leap** (`/next-leap`) — a "second brain for career changers": a short AI interview builds a pinboard of verdict-stamped infographic pins (`artifacts/next-leap`; routes under `/api/nextleap/`, schema `lib/db/src/schema/nl-*.ts`). Interview questions and chat replies offer tap-answer chips; every pin opens into a recap + pin-scoped chat with edit / AI "Add info" / delete and Keep-style checklists. Boards live at `/b/<token>` (`?pin=<id>` deep-links a pin). Demo boards (`demo-*` tokens) are read-only — all mutation routes 403.
 
 ## Architecture
 - pnpm monorepo. Frontend: `artifacts/portfolio-pulse` (React + Vite, wouter, dark editorial theme, served at `/`). Backend: `artifacts/api-server` (Express 5) at `/api`.

@@ -15,5 +15,10 @@ export interface NlMessage {
   moveId: number | null;
   role: string;
   content: string;
+  /**
+     * Tap-to-answer choices offered with this assistant turn
+     * @nullable
+     */
+  options: string[] | null;
   createdAt: Date;
 }

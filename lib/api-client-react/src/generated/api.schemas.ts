@@ -522,6 +522,11 @@ export interface NlMessage {
   moveId: number | null;
   role: string;
   content: string;
+  /**
+     * Tap-to-answer choices offered with this assistant turn
+     * @nullable
+     */
+  options: string[] | null;
   createdAt: string;
 }
 
@@ -544,6 +549,16 @@ export interface NlCheckin {
   createdAt: string;
 }
 
+export interface NlTask {
+  id: number;
+  boardId: number;
+  pinId: number;
+  label: string;
+  done: boolean;
+  orderIndex: number;
+  createdAt: string;
+}
+
 export interface NlBoardState {
   board: NlBoard;
   pins: NlPin[];
@@ -551,6 +566,8 @@ export interface NlBoardState {
   checkins: NlCheckin[];
   /** Main thread messages, oldest first */
   messages: NlMessage[];
+  /** Checklist items across all pins on the board */
+  tasks: NlTask[];
 }
 
 export type NlBoardInputDoor = typeof NlBoardInputDoor[keyof typeof NlBoardInputDoor];
@@ -585,6 +602,11 @@ export const NlInterviewTurnStage = {
 export interface NlInterviewTurn {
   /** The coach's reply - acknowledgment plus next question, or the wrap-up */
   say: string;
+  /**
+     * Tap-to-answer choices for this question, when the answer space is small
+     * @nullable
+     */
+  options?: string[] | null;
   stage: NlInterviewTurnStage;
   newPinIds: number[];
   touchedPinIds: number[];
@@ -601,6 +623,41 @@ export interface NlChatInput {
 export interface NlPinQuickAdd {
   /** @minLength 1 */
   text: string;
+}
+
+export interface NlPinUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  title?: string;
+  /**
+     * @minLength 1
+     * @maxLength 240
+     */
+  verdictWhy?: string;
+}
+
+export interface NlPinAppend {
+  /** @minLength 1 */
+  text: string;
+}
+
+export interface NlTaskCreate {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  label: string;
+}
+
+export interface NlTaskUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  label?: string;
+  done?: boolean;
 }
 
 export interface NlCheckinInput {
