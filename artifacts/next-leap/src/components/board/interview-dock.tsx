@@ -45,9 +45,18 @@ export const InterviewDock = ({
     const publish = () =>
       document.documentElement.style.setProperty('--dock-h', `${el.offsetHeight}px`);
     publish();
-    const observer = new ResizeObserver(publish);
+    // Writing layout from inside the observer callback can re-trigger the same
+    // observation in one frame — the browser reports that as a "ResizeObserver
+    // loop" error through window.onerror with no Error object attached, which
+    // crashes the dev overlay. Deferring the write one frame breaks the loop.
+    let raf = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(publish);
+    });
     observer.observe(el);
     return () => {
+      cancelAnimationFrame(raf);
       observer.disconnect();
       document.documentElement.style.removeProperty('--dock-h');
     };
