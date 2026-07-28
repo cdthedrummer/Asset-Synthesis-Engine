@@ -9,6 +9,46 @@ import {
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 
+/** Small donut, no text. Same grammar as the pulse card. */
+export const ProgressRing = ({
+  done,
+  total,
+  size = 16,
+}: {
+  done: number;
+  total: number;
+  size?: number;
+}) => {
+  const r = (size - 3) / 2;
+  const circumference = 2 * Math.PI * r;
+  const ratio = total > 0 ? done / total : 0;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0">
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke="var(--color-divider)"
+        strokeWidth={3}
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke="#10B981"
+        strokeWidth={3}
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={circumference * (1 - ratio)}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        style={{ transition: 'stroke-dashoffset 400ms ease' }}
+      />
+    </svg>
+  );
+};
+
 /** Keep-style tick list hanging off one pin. */
 export const PinChecklist = ({
   token,
@@ -36,8 +76,13 @@ export const PinChecklist = ({
         <h3 className="font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
           Checklist
         </h3>
-        <span className="font-mono text-[10px] text-muted-foreground">
-          {doneCount}/{tasks.length}
+        {/* Same grammar as the pulse card: the visual carries it, the number
+            just confirms it. */}
+        <span className="flex items-center gap-2">
+          <ProgressRing done={doneCount} total={tasks.length} />
+          <span className="font-mono text-[10px] text-muted-foreground">
+            {doneCount}/{tasks.length}
+          </span>
         </span>
       </div>
       <div>

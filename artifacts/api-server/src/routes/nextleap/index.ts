@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import express, { Router, type IRouter } from "express";
 import { asc, and, eq, isNull, sql } from "drizzle-orm";
 import { createMarkerLineFilter } from "./options-stream";
 import {
@@ -24,6 +24,11 @@ import {
   UpdateLeapPinTaskBody,
 } from "@workspace/api-zod";
 import { openai } from "@workspace/integrations-openai-ai-server";
+import {
+  detectAudioFormat,
+  ensureCompatibleFormat,
+  speechToText,
+} from "@workspace/integrations-openai-ai-server/audio";
 import { logger } from "../../lib/logger";
 import {
   LEAP_MODEL,
@@ -35,10 +40,14 @@ import {
   checkinSystem,
   deletePinAndScrub,
   generateToken,
+  groomBoard,
   interviewSystem,
+  MAX_INTERVIEW_QUESTIONS,
   loadState,
   quickAddSystem,
+  sanitizeAsk,
   sanitizeOptions,
+  type LeapAsk,
 } from "./engine";
 import {
   serializeNlBoard,
@@ -46,8 +55,10 @@ import {
   serializeNlMessage,
   serializeNlMove,
   serializeNlPin,
+  serializeNlProgress,
   serializeNlTask,
 } from "./serialize";
+import { computeProgress } from "./progress";
 
 const router: IRouter = Router();
 
@@ -78,6 +89,10 @@ async function boardStateJson(board: NlBoard) {
     checkins: state.checkins.map(serializeNlCheckin),
     messages: state.mainMessages.map(serializeNlMessage),
     tasks: state.tasks.map(serializeNlTask),
+    // Derived on read from rows already loaded above: no progress table, so no
+    // second source of truth to drift, and demo boards get a live-looking
+    // pulse for free from their seeded rows.
+    progress: serializeNlProgress(computeProgress(state)),
   };
 }
 
@@ -89,21 +104,68 @@ function demoBlocked(board: NlBoard, res: import("express").Response): boolean {
   return true;
 }
 
-const OPENING_FALLBACK: Record<string, string> = {
-  ambition:
-    "Good. That's a real one. Before we get into it — how much have you used AI tools like ChatGPT? Never touched them, poked around, or every day? No wrong answer, it just changes how we work.",
-  juggle:
-    "Alright, let's get all of it out of your head and onto a board. First, though — how much have you used AI tools like ChatGPT? Never, a little, or daily? It changes how we do the next part.",
-};
+/**
+ * If the opening model call fails, the interview still has to start. Domain-free
+ * and one tap, and it doubles as the AI-familiarity intake the prompt wants
+ * learned early.
+ */
+const FALLBACK_OPENING = {
+  say: "Got it. Quick one so I aim this right — how far along are you?",
+  ask: {
+    type: "single",
+    choices: [
+      { label: "Just an idea so far" },
+      { label: "Started, it's small" },
+      { label: "Running, want more" },
+      { label: "Stuck" },
+    ],
+  },
+} as const;
+
+/** The interview turn shape both /boards/:token/opening and /answers return. */
+async function interviewTurnJson(
+  board: NlBoard,
+  say: string,
+  ask: LeapAsk | Record<string, unknown> | null,
+  /**
+   * Questions the owner still has to answer, INCLUDING the one in `say`. So a
+   * fresh board is MAX_INTERVIEW_QUESTIONS, and 0 only when the interview is
+   * over — that's what keeps the dock's progress dots honest.
+   */
+  questionsLeft: number,
+  newPinIds: number[] = [],
+  touchedPinIds: number[] = [],
+) {
+  const fresh = await db.query.nlBoards.findFirst({
+    where: eq(nlBoards.id, board.id),
+  });
+  return {
+    say,
+    options: null,
+    ...(ask ? { ask } : {}),
+    questionsLeft: Math.max(0, questionsLeft),
+    stage: (fresh ?? board).stage,
+    newPinIds,
+    touchedPinIds,
+    board: await boardStateJson(board),
+  };
+}
 
 // --- create board ----------------------------------------------------------
+// Deliberately model-free, so it returns in tens of milliseconds. The opening
+// question is a separate call the board page makes once it is already on
+// screen — that is the whole reason the owner gets to WATCH their first cards
+// land instead of staring at a spinner on the front door.
 router.post("/nextleap/boards", async (req, res) => {
   const body = CreateLeapBoardBody.parse(req.body);
   const [board] = await db
     .insert(nlBoards)
     .values({
       token: generateToken(),
-      door: body.door,
+      // The door is the shape of the problem, not the domain: "I'm going after
+      // one thing" vs "I'm carrying too much". Optional at the contract now, so
+      // a caller that doesn't fork gets the ambition opening.
+      door: body.door ?? "ambition",
       goalText: body.goalText,
       name: body.name ?? "",
     })
@@ -120,23 +182,89 @@ router.post("/nextleap/boards", async (req, res) => {
     content: body.goalText,
   });
 
-  let opening = OPENING_FALLBACK[board.door] ?? OPENING_FALLBACK["ambition"]!;
-  // The fallback opener always asks about AI familiarity — give it tap answers.
-  let openingOptions: string[] | null = [
-    "Never touched them",
-    "Poked around a bit",
-    "Every day",
-  ];
+  res.status(201).json(await boardStateJson(board));
+});
+
+// --- opening interview turn (idempotent) -----------------------------------
+router.post("/nextleap/boards/:token/opening", async (req, res) => {
+  const board = await findBoard(req.params["token"]!);
+  if (!board) {
+    res.status(404).json({ error: "No board at this link." });
+    return;
+  }
+  if (demoBlocked(board, res)) return;
+
+  const state = await loadState(board);
+  const existingAssistant = state.mainMessages.filter(
+    (m) => m.role === "assistant",
+  );
+  // Already opened: hand back the current question rather than minting a second
+  // set of pins. React StrictMode double-fires effects in dev, so this path is
+  // hit routinely, not just on a retry.
+  if (existingAssistant.length > 0) {
+    const latest = existingAssistant[existingAssistant.length - 1]!;
+    res.json(
+      await interviewTurnJson(
+        board,
+        latest.content,
+        (latest.ask as Record<string, unknown> | null) ?? null,
+        Math.max(0, MAX_INTERVIEW_QUESTIONS - (existingAssistant.length - 1)),
+      ),
+    );
+    return;
+  }
+
+  // Claim the opening atomically, so two concurrent calls can't both mint a set
+  // of pins. The condition IS the invariant — "no assistant turn exists yet" —
+  // evaluated inside the UPDATE by Postgres.
+  //
+  // Deliberately not a compare-and-swap on updatedAt: Postgres stores timestamptz
+  // to microseconds and a JS Date round-trips at milliseconds, so that comparison
+  // never matches and every single call would take the "already in flight" branch.
+  const [claimed] = await db
+    .update(nlBoards)
+    .set({ updatedAt: new Date() })
+    .where(
+      and(
+        eq(nlBoards.id, board.id),
+        sql`not exists (select 1 from ${nlMessages} where ${nlMessages.boardId} = ${board.id} and ${nlMessages.role} = 'assistant')`,
+      ),
+    )
+    .returning();
+  if (!claimed) {
+    // Someone else got there first. Hand back whatever the board says now.
+    const fresh = await loadState(board);
+    const latest = fresh.mainMessages.filter((m) => m.role === "assistant").at(-1);
+    res.json(
+      await interviewTurnJson(
+        board,
+        latest?.content ?? FALLBACK_OPENING.say,
+        (latest?.ask as Record<string, unknown> | null) ?? null,
+        MAX_INTERVIEW_QUESTIONS,
+      ),
+    );
+    return;
+  }
+
+  let say: string = FALLBACK_OPENING.say;
+  let ask: LeapAsk | Record<string, unknown> | null = {
+    ...FALLBACK_OPENING.ask,
+    choices: FALLBACK_OPENING.ask.choices.map((c) => ({ ...c })),
+  };
+  let newPinIds: number[] = [];
+  let touchedPinIds: number[] = [];
   try {
-    const state = await loadState(board);
     const parsed = await callLeapJson([
       { role: "system", content: interviewSystem(state, 0) },
-      { role: "user", content: body.goalText },
+      { role: "user", content: board.goalText },
     ]);
     if (typeof parsed["say"] === "string" && parsed["say"].trim()) {
-      opening = parsed["say"].trim();
-      openingOptions = sanitizeOptions(parsed["options"]);
-      await applyOps(board, parsed["ops"]);
+      say = parsed["say"].trim();
+      ask = sanitizeAsk(parsed["ask"]);
+      const opsResult = await applyOps(board, parsed["ops"]);
+      newPinIds = opsResult.newPinIds;
+      touchedPinIds = opsResult.touchedPinIds;
+      if (opsResult.overflow.length > 0) await groomBoard(board, opsResult.overflow);
     }
   } catch (err) {
     logger.warn({ err }, "leap opening question failed, using fallback");
@@ -145,11 +273,20 @@ router.post("/nextleap/boards", async (req, res) => {
   await db.insert(nlMessages).values({
     boardId: board.id,
     role: "assistant",
-    content: opening,
-    options: openingOptions,
+    content: say,
+    ask,
   });
 
-  res.status(201).json(await boardStateJson(board));
+  res.json(
+    await interviewTurnJson(
+      board,
+      say,
+      ask,
+      MAX_INTERVIEW_QUESTIONS,
+      newPinIds,
+      touchedPinIds,
+    ),
+  );
 });
 
 // --- read board -------------------------------------------------------------
@@ -196,9 +333,13 @@ router.post("/nextleap/boards/:token/answers", async (req, res) => {
       typeof parsed["say"] === "string" && parsed["say"].trim()
         ? parsed["say"].trim()
         : "Say more — what does that look like in a normal week?";
-    const done = parsed["done"] === true;
-    // No tap answers on the wrap-up — the overlay is about to hand over the board.
-    const options = done ? null : sanitizeOptions(parsed["options"]);
+    // The prompt states the budget; this enforces it. A chatty model would
+    // otherwise outlive the cap, and the whole point of the shorter interview
+    // is that it actually ends.
+    const done =
+      parsed["done"] === true || questionsAsked >= MAX_INTERVIEW_QUESTIONS;
+    // No ask on the wrap-up — the board takes over.
+    const ask = done ? null : sanitizeAsk(parsed["ask"]);
     const opsResult = await applyOps(board, parsed["ops"]);
 
     let stage = board.stage;
@@ -217,7 +358,10 @@ router.post("/nextleap/boards/:token/answers", async (req, res) => {
         ].filter(Boolean);
         if (missing.length > 0) {
           const fix = await callLeapJson([
-            { role: "system", content: interviewSystem(freshState, 8) },
+            {
+              role: "system",
+              content: interviewSystem(freshState, MAX_INTERVIEW_QUESTIONS),
+            },
             {
               role: "user",
               content: `The interview is over. Based on this board — ${boardSnapshot(freshState)} — reply with ONLY {"say":"","done":true,"ops":[${missing.join(", ")}]}.`,
@@ -228,12 +372,16 @@ router.post("/nextleap/boards/:token/answers", async (req, res) => {
       } catch (err) {
         logger.error({ err }, "leap board-reveal fallback failed");
       }
+      // The board has to be clean at the exact moment it's revealed — that's
+      // the payoff. Never allowed to fail the turn.
+      await groomBoard(board, opsResult.overflow);
       stage = "board";
       await db
         .update(nlBoards)
         .set({ stage, updatedAt: new Date() })
         .where(eq(nlBoards.id, board.id));
     } else {
+      if (opsResult.overflow.length > 0) await groomBoard(board, opsResult.overflow);
       await db
         .update(nlBoards)
         .set({ updatedAt: new Date() })
@@ -244,12 +392,16 @@ router.post("/nextleap/boards/:token/answers", async (req, res) => {
       boardId: board.id,
       role: "assistant",
       content: say,
-      options,
+      ask,
     });
 
     res.json({
       say,
-      options,
+      options: null,
+      ...(ask ? { ask } : {}),
+      questionsLeft: done
+        ? 0
+        : Math.max(0, MAX_INTERVIEW_QUESTIONS - questionsAsked),
       stage,
       newPinIds: opsResult.newPinIds,
       touchedPinIds: opsResult.touchedPinIds,
@@ -262,6 +414,64 @@ router.post("/nextleap/boards/:token/answers", async (req, res) => {
     });
   }
 });
+
+// --- voice answers ---------------------------------------------------------
+// Raw audio in, text out. Route-level raw parser only — the global
+// express.json() in app.ts stays untouched.
+const rawAudio = express.raw({
+  type: ["audio/*", "application/octet-stream"],
+  limit: "8mb",
+});
+
+async function transcribe(
+  req: import("express").Request,
+  res: import("express").Response,
+): Promise<void> {
+  const audio: unknown = req.body;
+  if (!Buffer.isBuffer(audio) || audio.length < 1024) {
+    res.status(400).json({ error: "Didn't catch that — hold it a beat longer." });
+    return;
+  }
+
+  try {
+    const detected = detectAudioFormat(audio);
+    // Chrome and Firefox record webm, Safari and iOS record mp4, and the
+    // transcription endpoint takes both containers as they are. Only an
+    // unrecognised buffer is worth an ffmpeg round trip.
+    const { buffer, format } =
+      detected === "unknown"
+        ? await ensureCompatibleFormat(audio)
+        : { buffer: audio, format: detected };
+    const text = (await speechToText(buffer, format)).trim();
+    res.json({ text });
+  } catch (err) {
+    logger.warn({ err }, "leap transcription failed");
+    res
+      .status(502)
+      .json({ error: "Couldn't make out the recording. Type it instead." });
+  }
+}
+
+// The front door IS question one, and it has to take voice as well as typing —
+// which means transcription can't require a board, because none exists yet.
+// No worse an exposure than POST /boards, which already spends a model call
+// for anyone who asks.
+router.post("/nextleap/transcriptions", rawAudio, transcribe);
+
+// Board-scoped variant, for answers given once the interview is under way.
+router.post(
+  "/nextleap/boards/:token/transcriptions",
+  rawAudio,
+  async (req, res) => {
+    const board = await findBoard(req.params["token"]!);
+    if (!board) {
+      res.status(404).json({ error: "No board at this link." });
+      return;
+    }
+    if (demoBlocked(board, res)) return;
+    await transcribe(req, res);
+  },
+);
 
 // --- chat (SSE): main thread, pin threads, move rep sessions ----------------
 router.post("/nextleap/boards/:token/chat", async (req, res) => {
@@ -392,6 +602,20 @@ router.post("/nextleap/boards/:token/chat", async (req, res) => {
               return pinIds.has(Number(rec["id"]));
             if (rec["op"] === "upsertPin")
               return pinIds.has(Number(rec["ref"]));
+            // mergePin is the safe way to collapse duplicates — it re-parents
+            // checklists, threads and moves instead of cascading them away.
+            // Every id still has to be a real pin on this board.
+            if (rec["op"] === "mergePin") {
+              const survivor = Number(rec["survivorRef"]);
+              const absorb = Array.isArray(rec["absorbRefs"])
+                ? (rec["absorbRefs"] as unknown[]).map(Number)
+                : [];
+              return (
+                pinIds.has(survivor) &&
+                absorb.length > 0 &&
+                absorb.every((id) => pinIds.has(id) && id !== survivor)
+              );
+            }
             return false;
           });
         }
@@ -521,7 +745,16 @@ router.post("/nextleap/boards/:token/pins", async (req, res) => {
     const result = await applyOps(board, [
       { op: "upsertPin", pin: parsed["pin"] },
     ]);
-    const pinId = result.newPinIds[0] ?? result.touchedPinIds[0];
+    // At the ceiling the insert is held back and consolidated instead, and a
+    // near-duplicate is folded into the pin it duplicates. Either way the
+    // owner must land on the card their words ended up on — "nothing happened"
+    // is the one outcome a quick-add can't have.
+    if (result.overflow.length > 0) await groomBoard(board, result.overflow);
+    const pinId =
+      result.newPinIds[0] ??
+      result.touchedPinIds[0] ??
+      result.foldedIntoPinId ??
+      undefined;
     if (!pinId) throw new Error("quick add produced no pin");
     const pin = await db.query.nlPins.findFirst({ where: eq(nlPins.id, pinId) });
     if (!pin) throw new Error("quick add pin vanished");
@@ -698,7 +931,12 @@ router.patch(
     }
     const body = UpdateLeapPinTaskBody.parse(req.body);
     const patch: Partial<typeof nlTasks.$inferInsert> = {};
-    if (typeof body.done === "boolean") patch.done = body.done;
+    if (typeof body.done === "boolean") {
+      patch.done = body.done;
+      // The sensor needs a timestamp, not a flag — ticking a box is the
+      // cheapest real signal this board can collect.
+      patch.doneAt = body.done ? new Date() : null;
+    }
     if (typeof body.label === "string" && body.label.trim())
       patch.label = body.label.trim().slice(0, 200);
     if (Object.keys(patch).length === 0) {
@@ -831,6 +1069,10 @@ router.post("/nextleap/boards/:token/checkins", async (req, res) => {
       .set({ updatedAt: new Date() })
       .where(eq(nlBoards.id, board.id));
 
+    // Tidy on the natural cadence, so the board doesn't depend on the owner
+    // noticing duplicates and asking.
+    await groomBoard(board);
+
     res.status(201).json({
       checkin: serializeNlCheckin(checkin!),
       board: await boardStateJson(board),
@@ -855,7 +1097,12 @@ router.patch("/nextleap/boards/:token/moves/:moveId", async (req, res) => {
   const moveId = Number(req.params["moveId"]);
   const [move] = await db
     .update(nlMoves)
-    .set({ state: body.state })
+    .set({
+      state: body.state,
+      // Skipping is a decision, not a gap — it gets a timestamp too, so a
+      // deliberate drop counts as real work on the week strip.
+      doneAt: body.state === "pending" ? null : new Date(),
+    })
     .where(and(eq(nlMoves.id, moveId), eq(nlMoves.boardId, board.id)))
     .returning();
   if (!move) {

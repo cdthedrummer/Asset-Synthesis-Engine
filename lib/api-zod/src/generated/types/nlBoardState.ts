@@ -10,6 +10,7 @@ import type { NlCheckin } from './nlCheckin';
 import type { NlMessage } from './nlMessage';
 import type { NlMove } from './nlMove';
 import type { NlPin } from './nlPin';
+import type { NlProgress } from './nlProgress';
 import type { NlTask } from './nlTask';
 
 export interface NlBoardState {
@@ -21,4 +22,5 @@ export interface NlBoardState {
   messages: NlMessage[];
   /** Checklist items across all pins on the board */
   tasks: NlTask[];
+  progress: NlProgress;
 }

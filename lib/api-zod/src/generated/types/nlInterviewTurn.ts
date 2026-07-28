@@ -5,17 +5,21 @@
  * Portfolio Pulse API
  * OpenAPI spec version: 0.1.0
  */
+import type { NlAsk } from './nlAsk';
 import type { NlBoardState } from './nlBoardState';
 import type { NlInterviewTurnStage } from './nlInterviewTurnStage';
 
 export interface NlInterviewTurn {
-  /** The coach's reply - acknowledgment plus next question, or the wrap-up */
+  /** The reply - acknowledgment plus next question, or the wrap-up */
   say: string;
   /**
-     * Tap-to-answer choices for this question, when the answer space is small
+     * Deprecated - legacy chip list; new interview turns carry `ask` instead
      * @nullable
      */
   options?: string[] | null;
+  ask?: NlAsk;
+  /** Questions remaining before the interview is force-finished in code */
+  questionsLeft: number;
   stage: NlInterviewTurnStage;
   newPinIds: number[];
   touchedPinIds: number[];

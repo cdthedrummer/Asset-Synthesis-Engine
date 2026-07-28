@@ -462,6 +462,92 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorMessage"
+  /nextleap/boards/{token}/opening:
+    post:
+      operationId: openLeapInterview
+      tags: [nextleap]
+      summary: Run the first interview turn on a fresh board (idempotent)
+      description: >
+        Board creation stays fast and model-free so the board renders instantly;
+        this runs the opening turn afterwards, so the first pins mint into a
+        board the owner is already looking at. Safe to call twice - a board that
+        already has an assistant turn returns it unchanged.
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: First question plus the board's first pins
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NlInterviewTurn"
+        "403":
+          description: Demo board
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+  /nextleap/boards/{token}/transcriptions:
+    post:
+      operationId: transcribeLeapAudio
+      tags: [nextleap]
+      summary: Transcribe a recorded spoken answer (raw audio body)
+      description: >
+        Raw audio in, text out. The client posts the recorder's Blob directly
+        with a plain fetch rather than the generated hook - binary bodies
+        through the generated mutator are not worth the fight, same precedent
+        as the SSE chat stream. This entry keeps the contract complete.
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/octet-stream: {}
+      responses:
+        "200":
+          description: Plain-text transcript
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NlTranscription"
+        "400":
+          description: Nothing usable in the recording
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+        "403":
+          description: Demo board
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
+        "502":
+          description: Transcription failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorMessage"
   /nextleap/boards/{token}/chat:
     post:
       operationId: sendLeapChat
@@ -1421,6 +1507,13 @@ components:
         repDraft:
           type: ["string", "null"]
           description: Latest draft produced in the rep session
+        cycleIndex:
+          type: integer
+          description: Which round of three this move belongs to; every check-in issues a fresh set
+        doneAt:
+          type: ["string", "null"]
+          format: date-time
+          description: When this move left 'pending'
         createdAt:
           type: string
           format: date-time
@@ -1434,6 +1527,8 @@ components:
         - state
         - repKind
         - repDraft
+        - cycleIndex
+        - doneAt
         - createdAt
     NlMessage:
       type: object
@@ -1452,9 +1547,15 @@ components:
           type: string
         options:
           type: ["array", "null"]
-          description: Tap-to-answer choices offered with this assistant turn
+          description: Tap-to-answer chips offered with this assistant turn (chat threads)
           items:
             type: string
+        ask:
+          # Optional rather than nullable-and-required, unlike the rest of this
+          # file: a nullable $ref needs a oneOf wrapper in 3.1 and Orval renders
+          # that as an awkward generated union. Consequence: serializeNlMessage
+          # must OMIT this key when there is no ask, never send null.
+          $ref: "#/components/schemas/NlAsk"
         createdAt:
           type: string
           format: date-time
@@ -1527,6 +1628,8 @@ components:
           description: Checklist items across all pins on the board
           items:
             $ref: "#/components/schemas/NlTask"
+        progress:
+          $ref: "#/components/schemas/NlProgress"
       required:
         - board
         - pins
@@ -1534,20 +1637,21 @@ components:
         - checkins
         - messages
         - tasks
+        - progress
     NlBoardInput:
       type: object
       properties:
         door:
           type: string
           enum: [ambition, juggle]
+          description: Shape of the problem, not the domain - optional; defaults to ambition
         goalText:
           type: string
           minLength: 1
         name:
           type: string
-          description: First name, optional
+          description: First name, optional - usually learned later via the intake op
       required:
-        - door
         - goalText
     NlAnswerInput:
       type: object
@@ -1557,17 +1661,174 @@ components:
           minLength: 1
       required:
         - content
+    NlAskChoice:
+      type: object
+      properties:
+        label:
+          type: string
+          description: Tap target text (<=40 chars; <=24 on image tiles)
+        icon:
+          type: string
+          description: Icon-registry key, image asks only; server-allowlisted
+        recommended:
+          type: boolean
+          description: At most one choice per ask carries this
+      required:
+        - label
+    NlAsk:
+      description: >
+        How the current interview question gets answered. `type` picks the
+        renderer; the remaining fields are that type's payload - the same
+        contract shape as NlPin.kind/vizData. Always server-sanitized, so a
+        malformed model reply arrives as null (just type) rather than broken.
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [text, single, multi, rank, scale, image]
+        placeholder:
+          type: string
+          description: text - hint inside the box
+        choices:
+          type: array
+          description: single | multi | image
+          items:
+            $ref: "#/components/schemas/NlAskChoice"
+        maxPick:
+          type: integer
+          description: multi - most choices selectable
+        items:
+          type: array
+          description: rank - the things to put in order
+          items:
+            type: string
+        min:
+          type: integer
+          description: scale
+        max:
+          type: integer
+          description: scale
+        step:
+          type: integer
+          description: scale
+        startAt:
+          type: integer
+          description: scale - where the handle starts (not "default", which is a schema keyword)
+        minLabel:
+          type: string
+          description: scale - low end
+        maxLabel:
+          type: string
+          description: scale - high end
+        unit:
+          type: string
+          description: scale - short unit shown beside the number
+      required:
+        - type
+    NlProgressWeek:
+      type: object
+      properties:
+        start:
+          type: string
+          format: date
+          description: UTC ISO week start; bucketed server-side so the client never re-derives
+        actions:
+          type: integer
+      required:
+        - start
+        - actions
+    NlProgressCycle:
+      type: object
+      properties:
+        index:
+          type: integer
+        done:
+          type: integer
+        dropped:
+          type: integer
+        open:
+          type: integer
+        issuedAt:
+          type: ["string", "null"]
+          format: date-time
+        staleAt:
+          type: ["string", "null"]
+          format: date-time
+          description: issuedAt + 48h - the moves' own promise becomes the clock
+      required:
+        - index
+        - done
+        - dropped
+        - open
+        - issuedAt
+        - staleAt
+    NlProgress:
+      description: >
+        The board's sensor. Every field counts a state change the owner caused,
+        never a page load - see progress.ts for the rejected-metrics list.
+      type: object
+      properties:
+        done:
+          type: integer
+          description: Moves closed
+        dropped:
+          type: integer
+          description: Moves deliberately skipped - a decision, not a gap
+        reps:
+          type: integer
+          description: Moves that produced a real draft
+        ticks:
+          type: integer
+          description: Checklist items the owner ticked
+        checkins:
+          type: integer
+        cycle:
+          $ref: "#/components/schemas/NlProgressCycle"
+        weeks:
+          type: array
+          description: Eight UTC weeks, oldest first
+          items:
+            $ref: "#/components/schemas/NlProgressWeek"
+        activeWeeks:
+          type: integer
+          description: Consecutive weeks with at least one action, ending this week
+        lastActionAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - done
+        - dropped
+        - reps
+        - ticks
+        - checkins
+        - cycle
+        - weeks
+        - activeWeeks
+        - lastActionAt
+    NlTranscription:
+      type: object
+      properties:
+        text:
+          type: string
+      required:
+        - text
     NlInterviewTurn:
       type: object
       properties:
         say:
           type: string
-          description: The coach's reply - acknowledgment plus next question, or the wrap-up
+          description: The reply - acknowledgment plus next question, or the wrap-up
         options:
           type: ["array", "null"]
-          description: Tap-to-answer choices for this question, when the answer space is small
+          description: Deprecated - legacy chip list; new interview turns carry `ask` instead
           items:
             type: string
+        ask:
+          # Optional, not nullable - see the note on NlMessage.ask.
+          $ref: "#/components/schemas/NlAsk"
+        questionsLeft:
+          type: integer
+          description: Questions remaining before the interview is force-finished in code
         stage:
           type: string
           enum: [interview, board]
@@ -1584,6 +1845,7 @@ components:
       required:
         - say
         - stage
+        - questionsLeft
         - newPinIds
         - touchedPinIds
         - board
@@ -1620,6 +1882,10 @@ components:
           type: string
         done:
           type: boolean
+        doneAt:
+          type: ["string", "null"]
+          format: date-time
+          description: When this item was ticked; cleared when it is un-ticked
         orderIndex:
           type: integer
         createdAt:
@@ -1631,6 +1897,7 @@ components:
         - pinId
         - label
         - done
+        - doneAt
         - orderIndex
         - createdAt
     NlPinUpdate:

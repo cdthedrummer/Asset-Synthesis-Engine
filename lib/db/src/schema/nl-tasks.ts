@@ -24,6 +24,9 @@ export const nlTasks = pgTable("nl_tasks", {
     .references(() => nlPins.id, { onDelete: "cascade" }),
   label: text("label").notNull(),
   done: boolean("done").notNull().default(false),
+  // Set when `done` flips true, cleared when it flips back. Ticking a box is
+  // the cheapest real signal this app can collect, so it needs a timestamp.
+  doneAt: timestamp("done_at", { withTimezone: true }),
   orderIndex: integer("order_index").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()

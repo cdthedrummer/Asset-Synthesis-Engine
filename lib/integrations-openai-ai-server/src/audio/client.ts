@@ -219,7 +219,12 @@ export async function textToSpeechStream(
 /** Speech-to-Text using gpt-4o-mini-transcribe. */
 export async function speechToText(
   audioBuffer: Buffer,
-  format: "wav" | "mp3" | "webm" = "wav"
+  // The format only picks the filename extension the API sniffs, and the
+  // transcription endpoint accepts webm/mp4/ogg containers directly. Widened so
+  // browser recordings can be passed straight through instead of going via
+  // ensureCompatibleFormat, which shells out to ffmpeg for every format that
+  // isn't already wav or mp3 — that is, for every real browser.
+  format: "wav" | "mp3" | "webm" | "mp4" | "m4a" | "ogg" = "wav"
 ): Promise<string> {
   const file = await toFile(audioBuffer, `audio.${format}`);
   const response = await openai.audio.transcriptions.create({
@@ -232,7 +237,7 @@ export async function speechToText(
 /** Streaming Speech-to-Text. */
 export async function speechToTextStream(
   audioBuffer: Buffer,
-  format: "wav" | "mp3" | "webm" = "wav"
+  format: "wav" | "mp3" | "webm" | "mp4" | "m4a" | "ogg" = "wav"
 ): Promise<AsyncIterable<string>> {
   const file = await toFile(audioBuffer, `audio.${format}`);
   const stream = await openai.audio.transcriptions.create({

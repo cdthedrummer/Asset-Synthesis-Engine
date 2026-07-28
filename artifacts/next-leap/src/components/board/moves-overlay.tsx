@@ -1,15 +1,47 @@
 import React from 'react';
 import { Breadcrumb } from './breadcrumb';
 import { CheckCircle2, ChevronRight, Send, X } from 'lucide-react';
-import { NlMove, useUpdateLeapMove, useListLeapMoveMessages, getGetLeapBoardQueryKey } from '@workspace/api-client-react';
+import { NlMove, NlProgress, useUpdateLeapMove, useListLeapMoveMessages, getGetLeapBoardQueryKey, getLeapBoard } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLeapChat } from './use-leap-chat';
+import { MoveDoneBeat } from './move-done-beat';
+import { moveDoneLine, moveSkippedLine } from './reward-lines';
 
-export const MovesOverlay = ({ moves, onClose, token }: { moves: NlMove[], onClose: () => void, token: string }) => {
+/** The current round of three. Closed and skipped moves are kept as history, so
+ *  without this filter the drawer stacks every round it has ever issued and
+ *  contradicts the pulse card's "2 of 3 this round". */
+export function currentCycleMoves(moves: NlMove[]): NlMove[] {
+  if (moves.length === 0) return [];
+  const latest = moves.reduce((max, m) => Math.max(max, m.cycleIndex ?? 0), 0);
+  return moves
+    .filter(m => (m.cycleIndex ?? 0) === latest)
+    .sort((a, b) => a.orderIndex - b.orderIndex);
+}
+
+export const MovesOverlay = ({ moves, onClose, token, pinTitleOf, dodgedText }: {
+  moves: NlMove[],
+  onClose: () => void,
+  token: string,
+  /** Which pin a move serves, for the reward line. */
+  pinTitleOf?: (pinId: number | null) => string | undefined,
+  /** The last check-in's "you avoided this" text, for the best reward line. */
+  dodgedText?: string | null,
+}) => {
   const [activeMove, setActiveMove] = React.useState<NlMove | null>(null);
+  const cycle = currentCycleMoves(moves);
+  const earlier = moves.filter(m => !cycle.includes(m));
 
   if (activeMove) {
-    return <MoveRepSession move={activeMove} token={token} onBack={() => setActiveMove(null)} onHome={onClose} />;
+    return (
+      <MoveRepSession
+        move={activeMove}
+        token={token}
+        pinTitle={pinTitleOf?.(activeMove.pinId)}
+        dodgedText={dodgedText}
+        onBack={() => setActiveMove(null)}
+        onHome={onClose}
+      />
+    );
   }
 
   return (
@@ -24,8 +56,8 @@ export const MovesOverlay = ({ moves, onClose, token }: { moves: NlMove[], onClo
       <div className="flex-1 overflow-y-auto p-6 pt-8 bg-background">
         <div className="max-w-[400px] mx-auto space-y-4">
           <p className="text-muted-foreground font-medium mb-6">Here are the three concrete steps to take in the next 48 hours.</p>
-          
-          {[...moves].sort((a, b) => a.orderIndex - b.orderIndex).map(move => (
+
+          {cycle.map(move => (
             <div 
               key={move.id}
               onClick={() => setActiveMove(move)}
@@ -40,17 +72,43 @@ export const MovesOverlay = ({ moves, onClose, token }: { moves: NlMove[], onClo
               <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
             </div>
           ))}
+
+          {earlier.length > 0 && (
+            <details className="pt-6">
+              <summary className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground font-bold cursor-pointer list-none">
+                Earlier rounds · {earlier.length}
+              </summary>
+              <div className="mt-4 space-y-2">
+                {earlier.map(move => (
+                  <div key={move.id} className="flex items-baseline gap-3 opacity-60">
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground font-bold shrink-0 w-14">
+                      {move.state === 'done' ? 'Done' : move.state === 'skipped' ? 'Dropped' : 'Open'}
+                    </span>
+                    <span className="text-[13px] text-foreground leading-snug">{move.first48}</span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-const MoveRepSession = ({ move, token, onBack, onHome }: { move: NlMove, token: string, onBack: () => void, onHome: () => void }) => {
+const MoveRepSession = ({ move, token, pinTitle, dodgedText, onBack, onHome }: {
+  move: NlMove,
+  token: string,
+  pinTitle?: string,
+  dodgedText?: string | null,
+  onBack: () => void,
+  onHome: () => void,
+}) => {
   const updateMove = useUpdateLeapMove();
   const queryClient = useQueryClient();
   const [input, setInput] = React.useState('');
   const [saveError, setSaveError] = React.useState<string | null>(null);
+  const [beat, setBeat] = React.useState<{ progress: NlProgress; line: string; tone: 'done' | 'dropped' } | null>(null);
   const isDemo = token.startsWith('demo-');
 
   const { data: history } = useListLeapMoveMessages(token, move.id);
@@ -69,15 +127,40 @@ const MoveRepSession = ({ move, token, onBack, onHome }: { move: NlMove, token: 
   const setState = (state: 'done' | 'skipped') => {
     setSaveError(null);
     updateMove.mutate({ token, moveId: move.id, data: { state } }, {
-      onSuccess: () => {
+      onSuccess: async () => {
         queryClient.invalidateQueries({ queryKey: getGetLeapBoardQueryKey(token) });
-        onBack();
+        // Read the board back so the beat shows the real new count rather than
+        // a guess. If it fails, skip the celebration — never block the close.
+        try {
+          const fresh = await getLeapBoard(token);
+          setBeat({
+            progress: fresh.progress,
+            tone: state === 'done' ? 'done' : 'dropped',
+            line:
+              state === 'done'
+                ? moveDoneLine({ move, progress: fresh.progress, pinTitle, dodgedText })
+                : moveSkippedLine(),
+          });
+        } catch {
+          onBack();
+        }
       },
       onError: () => {
         setSaveError(isDemo ? 'Demo boards are read-only — start your own from the front door.' : "Couldn't save — try again.");
       }
     });
   };
+
+  if (beat) {
+    return (
+      <MoveDoneBeat
+        progress={beat.progress}
+        line={beat.line}
+        tone={beat.tone}
+        onFinish={() => { setBeat(null); onBack(); }}
+      />
+    );
+  }
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();

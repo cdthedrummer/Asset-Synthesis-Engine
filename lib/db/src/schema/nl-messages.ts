@@ -27,7 +27,13 @@ export const nlMessages = pgTable("nl_messages", {
   role: text("role").notNull(), // user | assistant
   content: text("content").notNull(),
   // Tap-to-answer choices offered alongside an assistant turn (string[] | null).
+  // Chat threads (pin/move/board) use this plus the `OPTIONS:` marker protocol.
   options: jsonb("options"),
+  // How an interview question gets answered: {type:"text"|"single"|"multi"|
+  // "rank"|"scale"|"image", ...payload for that type}. Interview turns only —
+  // chat keeps using `options`, so its shape stays honestly `string[] | null`.
+  // Always written through sanitizeAsk(); null means "just type".
+  ask: jsonb("ask"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
