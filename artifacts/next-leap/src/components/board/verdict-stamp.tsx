@@ -47,17 +47,36 @@ export function verdictLabel(verdict: string): keyof typeof STYLE_GUIDE.colors.v
   }
 }
 
+/**
+ * Visual emphasis only — never sort order. Pins sort by conversation recency by
+ * design, so the board keeps mirroring the conversation.
+ *
+ * The product's promise is triage, so the four verdicts are not peers. START is
+ * the only saturated fill on the board; SKIP FOR NOW goes to a hairline so the
+ * permission-to-drop reads as a decision rather than an alarm.
+ */
+export const VERDICT_WEIGHT: Record<string, number> = {
+  "START": 3,
+  "GET HELP": 2,
+  "SCHEDULE": 1,
+  "SKIP FOR NOW": 0,
+};
+
 export const VerdictStamp = ({ verdict, onClick, className = "" }: { verdict: string, onClick?: (e: React.MouseEvent, v: string) => void, className?: string }) => {
   const normVerdict = verdictLabel(verdict);
   const style = STYLE_GUIDE.colors.verdict[normVerdict];
+  const isStart = normVerdict === 'START';
+  const isSkip = normVerdict === 'SKIP FOR NOW';
   return (
-    <button 
+    <button
       onClick={(e) => onClick?.(e, normVerdict)}
-      className={`inline-flex w-auto items-center px-1.5 py-1 rounded-[var(--radius-pill)] border font-mono text-[8px] uppercase tracking-[0.05em] font-bold relative z-10 shrink-0 whitespace-nowrap ${onClick ? 'active:scale-95 transition-transform' : ''} ${className}`}
+      className={`inline-flex w-auto items-center rounded-[var(--radius-pill)] border font-mono uppercase font-bold relative z-10 shrink-0 whitespace-nowrap ${
+        isStart ? 'px-2.5 py-1.5 text-[9px] tracking-[0.08em]' : 'px-1.5 py-1 text-[8px] tracking-[0.05em]'
+      } ${onClick ? 'active:scale-95 transition-transform' : ''} ${className}`}
       style={{
-        backgroundColor: style.bg,
-        color: style.text,
-        borderColor: style.border,
+        backgroundColor: isStart ? '#10B981' : isSkip ? 'transparent' : style.bg,
+        color: isStart ? '#FFFFFF' : style.text,
+        borderColor: isSkip ? style.border : isStart ? '#10B981' : style.border,
         borderRadius: STYLE_GUIDE.radii.pill
       }}
     >

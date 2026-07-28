@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * Shape of the problem, not the domain - optional; defaults to ambition
+ */
 export type NlBoardInputDoor = typeof NlBoardInputDoor[keyof typeof NlBoardInputDoor];
 
 

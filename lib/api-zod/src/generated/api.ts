@@ -407,9 +407,9 @@ export const SendOpenaiMessageResponse = zod.unknown()
 
 
 export const CreateLeapBoardBody = zod.object({
-  "door": zod.enum(['ambition', 'juggle']),
+  "door": zod.enum(['ambition', 'juggle']).optional().describe('Shape of the problem, not the domain - optional; defaults to ambition'),
   "goalText": zod.string().min(1),
-  "name": zod.string().optional().describe('First name, optional')
+  "name": zod.string().optional().describe('First name, optional - usually learned later via the intake op')
 })
 
 export const CreateLeapBoardResponse = zod.object({
@@ -459,6 +459,8 @@ export const CreateLeapBoardResponse = zod.object({
   "state": zod.enum(['pending', 'done', 'skipped']),
   "repKind": zod.string().describe('What artifact the do-it-with-me rep drafts (email, post, pitch, plan, message, none)'),
   "repDraft": zod.string().nullable().describe('Latest draft produced in the rep session'),
+  "cycleIndex": zod.number().describe('Which round of three this move belongs to; every check-in issues a fresh set'),
+  "doneAt": zod.coerce.date().nullable().describe('When this move left \'pending\''),
   "createdAt": zod.coerce.date()
 })),
   "checkins": zod.array(zod.object({
@@ -477,7 +479,25 @@ export const CreateLeapBoardResponse = zod.object({
   "moveId": zod.number().nullable(),
   "role": zod.string(),
   "content": zod.string(),
-  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer choices offered with this assistant turn'),
+  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer chips offered with this assistant turn (chat threads)'),
+  "ask": zod.object({
+  "type": zod.enum(['text', 'single', 'multi', 'rank', 'scale', 'image']),
+  "placeholder": zod.string().optional().describe('text - hint inside the box'),
+  "choices": zod.array(zod.object({
+  "label": zod.string().describe('Tap target text (<=40 chars; <=24 on image tiles)'),
+  "icon": zod.string().optional().describe('Icon-registry key, image asks only; server-allowlisted'),
+  "recommended": zod.boolean().optional().describe('At most one choice per ask carries this')
+})).optional().describe('single | multi | image'),
+  "maxPick": zod.number().optional().describe('multi - most choices selectable'),
+  "items": zod.array(zod.string()).optional().describe('rank - the things to put in order'),
+  "min": zod.number().optional().describe('scale'),
+  "max": zod.number().optional().describe('scale'),
+  "step": zod.number().optional().describe('scale'),
+  "startAt": zod.number().optional().describe('scale - where the handle starts (not \"default\", which is a schema keyword)'),
+  "minLabel": zod.string().optional().describe('scale - low end'),
+  "maxLabel": zod.string().optional().describe('scale - high end'),
+  "unit": zod.string().optional().describe('scale - short unit shown beside the number')
+}).optional().describe('How the current interview question gets answered. `type` picks the renderer; the remaining fields are that type\'s payload - the same contract shape as NlPin.kind\/vizData. Always server-sanitized, so a malformed model reply arrives as null (just type) rather than broken.\n'),
   "createdAt": zod.coerce.date()
 })).describe('Main thread messages, oldest first'),
   "tasks": zod.array(zod.object({
@@ -486,9 +506,31 @@ export const CreateLeapBoardResponse = zod.object({
   "pinId": zod.number(),
   "label": zod.string(),
   "done": zod.boolean(),
+  "doneAt": zod.coerce.date().nullable().describe('When this item was ticked; cleared when it is un-ticked'),
   "orderIndex": zod.number(),
   "createdAt": zod.coerce.date()
-})).describe('Checklist items across all pins on the board')
+})).describe('Checklist items across all pins on the board'),
+  "progress": zod.object({
+  "done": zod.number().describe('Moves closed'),
+  "dropped": zod.number().describe('Moves deliberately skipped - a decision, not a gap'),
+  "reps": zod.number().describe('Moves that produced a real draft'),
+  "ticks": zod.number().describe('Checklist items the owner ticked'),
+  "checkins": zod.number(),
+  "cycle": zod.object({
+  "index": zod.number(),
+  "done": zod.number(),
+  "dropped": zod.number(),
+  "open": zod.number(),
+  "issuedAt": zod.coerce.date().nullable(),
+  "staleAt": zod.coerce.date().nullable().describe('issuedAt + 48h - the moves\' own promise becomes the clock')
+}),
+  "weeks": zod.array(zod.object({
+  "start": zod.coerce.date().describe('UTC ISO week start; bucketed server-side so the client never re-derives'),
+  "actions": zod.number()
+})).describe('Eight UTC weeks, oldest first'),
+  "activeWeeks": zod.number().describe('Consecutive weeks with at least one action, ending this week'),
+  "lastActionAt": zod.coerce.date().nullable()
+}).describe('The board\'s sensor. Every field counts a state change the owner caused, never a page load - see progress.ts for the rejected-metrics list.\n')
 })
 
 
@@ -546,6 +588,8 @@ export const GetLeapBoardResponse = zod.object({
   "state": zod.enum(['pending', 'done', 'skipped']),
   "repKind": zod.string().describe('What artifact the do-it-with-me rep drafts (email, post, pitch, plan, message, none)'),
   "repDraft": zod.string().nullable().describe('Latest draft produced in the rep session'),
+  "cycleIndex": zod.number().describe('Which round of three this move belongs to; every check-in issues a fresh set'),
+  "doneAt": zod.coerce.date().nullable().describe('When this move left \'pending\''),
   "createdAt": zod.coerce.date()
 })),
   "checkins": zod.array(zod.object({
@@ -564,7 +608,25 @@ export const GetLeapBoardResponse = zod.object({
   "moveId": zod.number().nullable(),
   "role": zod.string(),
   "content": zod.string(),
-  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer choices offered with this assistant turn'),
+  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer chips offered with this assistant turn (chat threads)'),
+  "ask": zod.object({
+  "type": zod.enum(['text', 'single', 'multi', 'rank', 'scale', 'image']),
+  "placeholder": zod.string().optional().describe('text - hint inside the box'),
+  "choices": zod.array(zod.object({
+  "label": zod.string().describe('Tap target text (<=40 chars; <=24 on image tiles)'),
+  "icon": zod.string().optional().describe('Icon-registry key, image asks only; server-allowlisted'),
+  "recommended": zod.boolean().optional().describe('At most one choice per ask carries this')
+})).optional().describe('single | multi | image'),
+  "maxPick": zod.number().optional().describe('multi - most choices selectable'),
+  "items": zod.array(zod.string()).optional().describe('rank - the things to put in order'),
+  "min": zod.number().optional().describe('scale'),
+  "max": zod.number().optional().describe('scale'),
+  "step": zod.number().optional().describe('scale'),
+  "startAt": zod.number().optional().describe('scale - where the handle starts (not \"default\", which is a schema keyword)'),
+  "minLabel": zod.string().optional().describe('scale - low end'),
+  "maxLabel": zod.string().optional().describe('scale - high end'),
+  "unit": zod.string().optional().describe('scale - short unit shown beside the number')
+}).optional().describe('How the current interview question gets answered. `type` picks the renderer; the remaining fields are that type\'s payload - the same contract shape as NlPin.kind\/vizData. Always server-sanitized, so a malformed model reply arrives as null (just type) rather than broken.\n'),
   "createdAt": zod.coerce.date()
 })).describe('Main thread messages, oldest first'),
   "tasks": zod.array(zod.object({
@@ -573,9 +635,31 @@ export const GetLeapBoardResponse = zod.object({
   "pinId": zod.number(),
   "label": zod.string(),
   "done": zod.boolean(),
+  "doneAt": zod.coerce.date().nullable().describe('When this item was ticked; cleared when it is un-ticked'),
   "orderIndex": zod.number(),
   "createdAt": zod.coerce.date()
-})).describe('Checklist items across all pins on the board')
+})).describe('Checklist items across all pins on the board'),
+  "progress": zod.object({
+  "done": zod.number().describe('Moves closed'),
+  "dropped": zod.number().describe('Moves deliberately skipped - a decision, not a gap'),
+  "reps": zod.number().describe('Moves that produced a real draft'),
+  "ticks": zod.number().describe('Checklist items the owner ticked'),
+  "checkins": zod.number(),
+  "cycle": zod.object({
+  "index": zod.number(),
+  "done": zod.number(),
+  "dropped": zod.number(),
+  "open": zod.number(),
+  "issuedAt": zod.coerce.date().nullable(),
+  "staleAt": zod.coerce.date().nullable().describe('issuedAt + 48h - the moves\' own promise becomes the clock')
+}),
+  "weeks": zod.array(zod.object({
+  "start": zod.coerce.date().describe('UTC ISO week start; bucketed server-side so the client never re-derives'),
+  "actions": zod.number()
+})).describe('Eight UTC weeks, oldest first'),
+  "activeWeeks": zod.number().describe('Consecutive weeks with at least one action, ending this week'),
+  "lastActionAt": zod.coerce.date().nullable()
+}).describe('The board\'s sensor. Every field counts a state change the owner caused, never a page load - see progress.ts for the rejected-metrics list.\n')
 })
 
 
@@ -594,8 +678,27 @@ export const AnswerLeapInterviewBody = zod.object({
 })
 
 export const AnswerLeapInterviewResponse = zod.object({
-  "say": zod.string().describe('The coach\'s reply - acknowledgment plus next question, or the wrap-up'),
-  "options": zod.array(zod.string()).nullish().describe('Tap-to-answer choices for this question, when the answer space is small'),
+  "say": zod.string().describe('The reply - acknowledgment plus next question, or the wrap-up'),
+  "options": zod.array(zod.string()).nullish().describe('Deprecated - legacy chip list; new interview turns carry `ask` instead'),
+  "ask": zod.object({
+  "type": zod.enum(['text', 'single', 'multi', 'rank', 'scale', 'image']),
+  "placeholder": zod.string().optional().describe('text - hint inside the box'),
+  "choices": zod.array(zod.object({
+  "label": zod.string().describe('Tap target text (<=40 chars; <=24 on image tiles)'),
+  "icon": zod.string().optional().describe('Icon-registry key, image asks only; server-allowlisted'),
+  "recommended": zod.boolean().optional().describe('At most one choice per ask carries this')
+})).optional().describe('single | multi | image'),
+  "maxPick": zod.number().optional().describe('multi - most choices selectable'),
+  "items": zod.array(zod.string()).optional().describe('rank - the things to put in order'),
+  "min": zod.number().optional().describe('scale'),
+  "max": zod.number().optional().describe('scale'),
+  "step": zod.number().optional().describe('scale'),
+  "startAt": zod.number().optional().describe('scale - where the handle starts (not \"default\", which is a schema keyword)'),
+  "minLabel": zod.string().optional().describe('scale - low end'),
+  "maxLabel": zod.string().optional().describe('scale - high end'),
+  "unit": zod.string().optional().describe('scale - short unit shown beside the number')
+}).optional().describe('How the current interview question gets answered. `type` picks the renderer; the remaining fields are that type\'s payload - the same contract shape as NlPin.kind\/vizData. Always server-sanitized, so a malformed model reply arrives as null (just type) rather than broken.\n'),
+  "questionsLeft": zod.number().describe('Questions remaining before the interview is force-finished in code'),
   "stage": zod.enum(['interview', 'board']),
   "newPinIds": zod.array(zod.number()),
   "touchedPinIds": zod.array(zod.number()),
@@ -646,6 +749,8 @@ export const AnswerLeapInterviewResponse = zod.object({
   "state": zod.enum(['pending', 'done', 'skipped']),
   "repKind": zod.string().describe('What artifact the do-it-with-me rep drafts (email, post, pitch, plan, message, none)'),
   "repDraft": zod.string().nullable().describe('Latest draft produced in the rep session'),
+  "cycleIndex": zod.number().describe('Which round of three this move belongs to; every check-in issues a fresh set'),
+  "doneAt": zod.coerce.date().nullable().describe('When this move left \'pending\''),
   "createdAt": zod.coerce.date()
 })),
   "checkins": zod.array(zod.object({
@@ -664,7 +769,25 @@ export const AnswerLeapInterviewResponse = zod.object({
   "moveId": zod.number().nullable(),
   "role": zod.string(),
   "content": zod.string(),
-  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer choices offered with this assistant turn'),
+  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer chips offered with this assistant turn (chat threads)'),
+  "ask": zod.object({
+  "type": zod.enum(['text', 'single', 'multi', 'rank', 'scale', 'image']),
+  "placeholder": zod.string().optional().describe('text - hint inside the box'),
+  "choices": zod.array(zod.object({
+  "label": zod.string().describe('Tap target text (<=40 chars; <=24 on image tiles)'),
+  "icon": zod.string().optional().describe('Icon-registry key, image asks only; server-allowlisted'),
+  "recommended": zod.boolean().optional().describe('At most one choice per ask carries this')
+})).optional().describe('single | multi | image'),
+  "maxPick": zod.number().optional().describe('multi - most choices selectable'),
+  "items": zod.array(zod.string()).optional().describe('rank - the things to put in order'),
+  "min": zod.number().optional().describe('scale'),
+  "max": zod.number().optional().describe('scale'),
+  "step": zod.number().optional().describe('scale'),
+  "startAt": zod.number().optional().describe('scale - where the handle starts (not \"default\", which is a schema keyword)'),
+  "minLabel": zod.string().optional().describe('scale - low end'),
+  "maxLabel": zod.string().optional().describe('scale - high end'),
+  "unit": zod.string().optional().describe('scale - short unit shown beside the number')
+}).optional().describe('How the current interview question gets answered. `type` picks the renderer; the remaining fields are that type\'s payload - the same contract shape as NlPin.kind\/vizData. Always server-sanitized, so a malformed model reply arrives as null (just type) rather than broken.\n'),
   "createdAt": zod.coerce.date()
 })).describe('Main thread messages, oldest first'),
   "tasks": zod.array(zod.object({
@@ -673,10 +796,201 @@ export const AnswerLeapInterviewResponse = zod.object({
   "pinId": zod.number(),
   "label": zod.string(),
   "done": zod.boolean(),
+  "doneAt": zod.coerce.date().nullable().describe('When this item was ticked; cleared when it is un-ticked'),
   "orderIndex": zod.number(),
   "createdAt": zod.coerce.date()
-})).describe('Checklist items across all pins on the board')
+})).describe('Checklist items across all pins on the board'),
+  "progress": zod.object({
+  "done": zod.number().describe('Moves closed'),
+  "dropped": zod.number().describe('Moves deliberately skipped - a decision, not a gap'),
+  "reps": zod.number().describe('Moves that produced a real draft'),
+  "ticks": zod.number().describe('Checklist items the owner ticked'),
+  "checkins": zod.number(),
+  "cycle": zod.object({
+  "index": zod.number(),
+  "done": zod.number(),
+  "dropped": zod.number(),
+  "open": zod.number(),
+  "issuedAt": zod.coerce.date().nullable(),
+  "staleAt": zod.coerce.date().nullable().describe('issuedAt + 48h - the moves\' own promise becomes the clock')
+}),
+  "weeks": zod.array(zod.object({
+  "start": zod.coerce.date().describe('UTC ISO week start; bucketed server-side so the client never re-derives'),
+  "actions": zod.number()
+})).describe('Eight UTC weeks, oldest first'),
+  "activeWeeks": zod.number().describe('Consecutive weeks with at least one action, ending this week'),
+  "lastActionAt": zod.coerce.date().nullable()
+}).describe('The board\'s sensor. Every field counts a state change the owner caused, never a page load - see progress.ts for the rejected-metrics list.\n')
 })
+})
+
+
+/**
+ * Board creation stays fast and model-free so the board renders instantly; this runs the opening turn afterwards, so the first pins mint into a board the owner is already looking at. Safe to call twice - a board that already has an assistant turn returns it unchanged.
+ * @summary Run the first interview turn on a fresh board (idempotent)
+ */
+export const OpenLeapInterviewParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const OpenLeapInterviewResponse = zod.object({
+  "say": zod.string().describe('The reply - acknowledgment plus next question, or the wrap-up'),
+  "options": zod.array(zod.string()).nullish().describe('Deprecated - legacy chip list; new interview turns carry `ask` instead'),
+  "ask": zod.object({
+  "type": zod.enum(['text', 'single', 'multi', 'rank', 'scale', 'image']),
+  "placeholder": zod.string().optional().describe('text - hint inside the box'),
+  "choices": zod.array(zod.object({
+  "label": zod.string().describe('Tap target text (<=40 chars; <=24 on image tiles)'),
+  "icon": zod.string().optional().describe('Icon-registry key, image asks only; server-allowlisted'),
+  "recommended": zod.boolean().optional().describe('At most one choice per ask carries this')
+})).optional().describe('single | multi | image'),
+  "maxPick": zod.number().optional().describe('multi - most choices selectable'),
+  "items": zod.array(zod.string()).optional().describe('rank - the things to put in order'),
+  "min": zod.number().optional().describe('scale'),
+  "max": zod.number().optional().describe('scale'),
+  "step": zod.number().optional().describe('scale'),
+  "startAt": zod.number().optional().describe('scale - where the handle starts (not \"default\", which is a schema keyword)'),
+  "minLabel": zod.string().optional().describe('scale - low end'),
+  "maxLabel": zod.string().optional().describe('scale - high end'),
+  "unit": zod.string().optional().describe('scale - short unit shown beside the number')
+}).optional().describe('How the current interview question gets answered. `type` picks the renderer; the remaining fields are that type\'s payload - the same contract shape as NlPin.kind\/vizData. Always server-sanitized, so a malformed model reply arrives as null (just type) rather than broken.\n'),
+  "questionsLeft": zod.number().describe('Questions remaining before the interview is force-finished in code'),
+  "stage": zod.enum(['interview', 'board']),
+  "newPinIds": zod.array(zod.number()),
+  "touchedPinIds": zod.array(zod.number()),
+  "board": zod.object({
+  "board": zod.object({
+  "id": zod.number(),
+  "token": zod.string().describe('Unguessable share token; the board\'s link identity'),
+  "kind": zod.enum(['real', 'demo']),
+  "name": zod.string().describe('First name of the person the board belongs to'),
+  "door": zod.enum(['ambition', 'juggle']).describe('Front door taken - one ambition, or juggling many roles'),
+  "goalText": zod.string().describe('What they typed at the front door, verbatim'),
+  "aiFamiliarity": zod.string().nullable().describe('new | some | daily - learned during the interview'),
+  "craftComfort": zod.string().nullable().describe('none | some | confident - design\/marketing comfort'),
+  "stage": zod.enum(['interview', 'board']),
+  "statChips": zod.array(zod.object({
+  "value": zod.string(),
+  "label": zod.string(),
+  "tone": zod.string().optional().describe('neutral | good | warn')
+})).nullable().describe('The three headline stat chips'),
+  "trajectory": zod.record(zod.string(), zod.unknown()).nullable().describe('A-to-B timeline card - history, projection, milestones'),
+  "bet": zod.record(zod.string(), zod.unknown()).nullable().describe('The \"which item would you bet I abandon first\" beat'),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "pins": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "title": zod.string().describe('Internal name; the board shows only the visual, title appears in drill-down'),
+  "verdict": zod.enum(['start', 'schedule', 'skip', 'gethelp']),
+  "verdictWhy": zod.string().describe('One-or-two sentence blunt reason shown in the verdict popover'),
+  "difficulty": zod.number().describe('1-10 personal difficulty'),
+  "impact": zod.number().describe('1-10 twelve-month impact'),
+  "kind": zod.enum(['steps', 'pipeline', 'menu', 'table', 'calendar', 'bars', 'stat']).describe('Which self-identifying infographic template renders this pin'),
+  "vizData": zod.record(zod.string(), zod.unknown()).describe('Template-specific payload the pin renders from'),
+  "detail": zod.record(zod.string(), zod.unknown()).nullable().describe('Second drill level - expanded chart\/timeline payload'),
+  "verifyYourself": zod.boolean().describe('True for license\/permit items the user must verify with authorities'),
+  "relatedPinIds": zod.array(zod.number()),
+  "lastTouchedAt": zod.coerce.date().describe('Drives recency sort and the tiny recency stamp'),
+  "createdAt": zod.coerce.date()
+})),
+  "moves": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number().nullable(),
+  "title": zod.string(),
+  "first48": zod.string().describe('The concrete first step framed for the next 48 hours'),
+  "orderIndex": zod.number(),
+  "state": zod.enum(['pending', 'done', 'skipped']),
+  "repKind": zod.string().describe('What artifact the do-it-with-me rep drafts (email, post, pitch, plan, message, none)'),
+  "repDraft": zod.string().nullable().describe('Latest draft produced in the rep session'),
+  "cycleIndex": zod.number().describe('Which round of three this move belongs to; every check-in issues a fresh set'),
+  "doneAt": zod.coerce.date().nullable().describe('When this move left \'pending\''),
+  "createdAt": zod.coerce.date()
+})),
+  "checkins": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "note": zod.string().describe('What the user said happened, verbatim'),
+  "summary": zod.string().describe('Coach response - celebrates, re-scores, names the dodge'),
+  "changes": zod.array(zod.record(zod.string(), zod.unknown())).describe('Re-score deltas applied to pins'),
+  "dodged": zod.string().nullable().describe('The item the user avoided, named out loud'),
+  "createdAt": zod.coerce.date()
+})),
+  "messages": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number().nullable(),
+  "moveId": zod.number().nullable(),
+  "role": zod.string(),
+  "content": zod.string(),
+  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer chips offered with this assistant turn (chat threads)'),
+  "ask": zod.object({
+  "type": zod.enum(['text', 'single', 'multi', 'rank', 'scale', 'image']),
+  "placeholder": zod.string().optional().describe('text - hint inside the box'),
+  "choices": zod.array(zod.object({
+  "label": zod.string().describe('Tap target text (<=40 chars; <=24 on image tiles)'),
+  "icon": zod.string().optional().describe('Icon-registry key, image asks only; server-allowlisted'),
+  "recommended": zod.boolean().optional().describe('At most one choice per ask carries this')
+})).optional().describe('single | multi | image'),
+  "maxPick": zod.number().optional().describe('multi - most choices selectable'),
+  "items": zod.array(zod.string()).optional().describe('rank - the things to put in order'),
+  "min": zod.number().optional().describe('scale'),
+  "max": zod.number().optional().describe('scale'),
+  "step": zod.number().optional().describe('scale'),
+  "startAt": zod.number().optional().describe('scale - where the handle starts (not \"default\", which is a schema keyword)'),
+  "minLabel": zod.string().optional().describe('scale - low end'),
+  "maxLabel": zod.string().optional().describe('scale - high end'),
+  "unit": zod.string().optional().describe('scale - short unit shown beside the number')
+}).optional().describe('How the current interview question gets answered. `type` picks the renderer; the remaining fields are that type\'s payload - the same contract shape as NlPin.kind\/vizData. Always server-sanitized, so a malformed model reply arrives as null (just type) rather than broken.\n'),
+  "createdAt": zod.coerce.date()
+})).describe('Main thread messages, oldest first'),
+  "tasks": zod.array(zod.object({
+  "id": zod.number(),
+  "boardId": zod.number(),
+  "pinId": zod.number(),
+  "label": zod.string(),
+  "done": zod.boolean(),
+  "doneAt": zod.coerce.date().nullable().describe('When this item was ticked; cleared when it is un-ticked'),
+  "orderIndex": zod.number(),
+  "createdAt": zod.coerce.date()
+})).describe('Checklist items across all pins on the board'),
+  "progress": zod.object({
+  "done": zod.number().describe('Moves closed'),
+  "dropped": zod.number().describe('Moves deliberately skipped - a decision, not a gap'),
+  "reps": zod.number().describe('Moves that produced a real draft'),
+  "ticks": zod.number().describe('Checklist items the owner ticked'),
+  "checkins": zod.number(),
+  "cycle": zod.object({
+  "index": zod.number(),
+  "done": zod.number(),
+  "dropped": zod.number(),
+  "open": zod.number(),
+  "issuedAt": zod.coerce.date().nullable(),
+  "staleAt": zod.coerce.date().nullable().describe('issuedAt + 48h - the moves\' own promise becomes the clock')
+}),
+  "weeks": zod.array(zod.object({
+  "start": zod.coerce.date().describe('UTC ISO week start; bucketed server-side so the client never re-derives'),
+  "actions": zod.number()
+})).describe('Eight UTC weeks, oldest first'),
+  "activeWeeks": zod.number().describe('Consecutive weeks with at least one action, ending this week'),
+  "lastActionAt": zod.coerce.date().nullable()
+}).describe('The board\'s sensor. Every field counts a state change the owner caused, never a page load - see progress.ts for the rejected-metrics list.\n')
+})
+})
+
+
+/**
+ * Raw audio in, text out. The client posts the recorder's Blob directly with a plain fetch rather than the generated hook - binary bodies through the generated mutator are not worth the fight, same precedent as the SSE chat stream. This entry keeps the contract complete.
+ * @summary Transcribe a recorded spoken answer (raw audio body)
+ */
+export const TranscribeLeapAudioParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const TranscribeLeapAudioResponse = zod.object({
+  "text": zod.string()
 })
 
 
@@ -714,7 +1028,25 @@ export const ListLeapPinMessagesResponseItem = zod.object({
   "moveId": zod.number().nullable(),
   "role": zod.string(),
   "content": zod.string(),
-  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer choices offered with this assistant turn'),
+  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer chips offered with this assistant turn (chat threads)'),
+  "ask": zod.object({
+  "type": zod.enum(['text', 'single', 'multi', 'rank', 'scale', 'image']),
+  "placeholder": zod.string().optional().describe('text - hint inside the box'),
+  "choices": zod.array(zod.object({
+  "label": zod.string().describe('Tap target text (<=40 chars; <=24 on image tiles)'),
+  "icon": zod.string().optional().describe('Icon-registry key, image asks only; server-allowlisted'),
+  "recommended": zod.boolean().optional().describe('At most one choice per ask carries this')
+})).optional().describe('single | multi | image'),
+  "maxPick": zod.number().optional().describe('multi - most choices selectable'),
+  "items": zod.array(zod.string()).optional().describe('rank - the things to put in order'),
+  "min": zod.number().optional().describe('scale'),
+  "max": zod.number().optional().describe('scale'),
+  "step": zod.number().optional().describe('scale'),
+  "startAt": zod.number().optional().describe('scale - where the handle starts (not \"default\", which is a schema keyword)'),
+  "minLabel": zod.string().optional().describe('scale - low end'),
+  "maxLabel": zod.string().optional().describe('scale - high end'),
+  "unit": zod.string().optional().describe('scale - short unit shown beside the number')
+}).optional().describe('How the current interview question gets answered. `type` picks the renderer; the remaining fields are that type\'s payload - the same contract shape as NlPin.kind\/vizData. Always server-sanitized, so a malformed model reply arrives as null (just type) rather than broken.\n'),
   "createdAt": zod.coerce.date()
 })
 export const ListLeapPinMessagesResponse = zod.array(ListLeapPinMessagesResponseItem)
@@ -735,7 +1067,25 @@ export const ListLeapMoveMessagesResponseItem = zod.object({
   "moveId": zod.number().nullable(),
   "role": zod.string(),
   "content": zod.string(),
-  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer choices offered with this assistant turn'),
+  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer chips offered with this assistant turn (chat threads)'),
+  "ask": zod.object({
+  "type": zod.enum(['text', 'single', 'multi', 'rank', 'scale', 'image']),
+  "placeholder": zod.string().optional().describe('text - hint inside the box'),
+  "choices": zod.array(zod.object({
+  "label": zod.string().describe('Tap target text (<=40 chars; <=24 on image tiles)'),
+  "icon": zod.string().optional().describe('Icon-registry key, image asks only; server-allowlisted'),
+  "recommended": zod.boolean().optional().describe('At most one choice per ask carries this')
+})).optional().describe('single | multi | image'),
+  "maxPick": zod.number().optional().describe('multi - most choices selectable'),
+  "items": zod.array(zod.string()).optional().describe('rank - the things to put in order'),
+  "min": zod.number().optional().describe('scale'),
+  "max": zod.number().optional().describe('scale'),
+  "step": zod.number().optional().describe('scale'),
+  "startAt": zod.number().optional().describe('scale - where the handle starts (not \"default\", which is a schema keyword)'),
+  "minLabel": zod.string().optional().describe('scale - low end'),
+  "maxLabel": zod.string().optional().describe('scale - high end'),
+  "unit": zod.string().optional().describe('scale - short unit shown beside the number')
+}).optional().describe('How the current interview question gets answered. `type` picks the renderer; the remaining fields are that type\'s payload - the same contract shape as NlPin.kind\/vizData. Always server-sanitized, so a malformed model reply arrives as null (just type) rather than broken.\n'),
   "createdAt": zod.coerce.date()
 })
 export const ListLeapMoveMessagesResponse = zod.array(ListLeapMoveMessagesResponseItem)
@@ -876,6 +1226,7 @@ export const CreateLeapPinTaskResponse = zod.object({
   "pinId": zod.number(),
   "label": zod.string(),
   "done": zod.boolean(),
+  "doneAt": zod.coerce.date().nullable().describe('When this item was ticked; cleared when it is un-ticked'),
   "orderIndex": zod.number(),
   "createdAt": zod.coerce.date()
 })
@@ -905,6 +1256,7 @@ export const UpdateLeapPinTaskResponse = zod.object({
   "pinId": zod.number(),
   "label": zod.string(),
   "done": zod.boolean(),
+  "doneAt": zod.coerce.date().nullable().describe('When this item was ticked; cleared when it is un-ticked'),
   "orderIndex": zod.number(),
   "createdAt": zod.coerce.date()
 })
@@ -993,6 +1345,8 @@ export const CreateLeapCheckinResponse = zod.object({
   "state": zod.enum(['pending', 'done', 'skipped']),
   "repKind": zod.string().describe('What artifact the do-it-with-me rep drafts (email, post, pitch, plan, message, none)'),
   "repDraft": zod.string().nullable().describe('Latest draft produced in the rep session'),
+  "cycleIndex": zod.number().describe('Which round of three this move belongs to; every check-in issues a fresh set'),
+  "doneAt": zod.coerce.date().nullable().describe('When this move left \'pending\''),
   "createdAt": zod.coerce.date()
 })),
   "checkins": zod.array(zod.object({
@@ -1011,7 +1365,25 @@ export const CreateLeapCheckinResponse = zod.object({
   "moveId": zod.number().nullable(),
   "role": zod.string(),
   "content": zod.string(),
-  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer choices offered with this assistant turn'),
+  "options": zod.array(zod.string()).nullable().describe('Tap-to-answer chips offered with this assistant turn (chat threads)'),
+  "ask": zod.object({
+  "type": zod.enum(['text', 'single', 'multi', 'rank', 'scale', 'image']),
+  "placeholder": zod.string().optional().describe('text - hint inside the box'),
+  "choices": zod.array(zod.object({
+  "label": zod.string().describe('Tap target text (<=40 chars; <=24 on image tiles)'),
+  "icon": zod.string().optional().describe('Icon-registry key, image asks only; server-allowlisted'),
+  "recommended": zod.boolean().optional().describe('At most one choice per ask carries this')
+})).optional().describe('single | multi | image'),
+  "maxPick": zod.number().optional().describe('multi - most choices selectable'),
+  "items": zod.array(zod.string()).optional().describe('rank - the things to put in order'),
+  "min": zod.number().optional().describe('scale'),
+  "max": zod.number().optional().describe('scale'),
+  "step": zod.number().optional().describe('scale'),
+  "startAt": zod.number().optional().describe('scale - where the handle starts (not \"default\", which is a schema keyword)'),
+  "minLabel": zod.string().optional().describe('scale - low end'),
+  "maxLabel": zod.string().optional().describe('scale - high end'),
+  "unit": zod.string().optional().describe('scale - short unit shown beside the number')
+}).optional().describe('How the current interview question gets answered. `type` picks the renderer; the remaining fields are that type\'s payload - the same contract shape as NlPin.kind\/vizData. Always server-sanitized, so a malformed model reply arrives as null (just type) rather than broken.\n'),
   "createdAt": zod.coerce.date()
 })).describe('Main thread messages, oldest first'),
   "tasks": zod.array(zod.object({
@@ -1020,9 +1392,31 @@ export const CreateLeapCheckinResponse = zod.object({
   "pinId": zod.number(),
   "label": zod.string(),
   "done": zod.boolean(),
+  "doneAt": zod.coerce.date().nullable().describe('When this item was ticked; cleared when it is un-ticked'),
   "orderIndex": zod.number(),
   "createdAt": zod.coerce.date()
-})).describe('Checklist items across all pins on the board')
+})).describe('Checklist items across all pins on the board'),
+  "progress": zod.object({
+  "done": zod.number().describe('Moves closed'),
+  "dropped": zod.number().describe('Moves deliberately skipped - a decision, not a gap'),
+  "reps": zod.number().describe('Moves that produced a real draft'),
+  "ticks": zod.number().describe('Checklist items the owner ticked'),
+  "checkins": zod.number(),
+  "cycle": zod.object({
+  "index": zod.number(),
+  "done": zod.number(),
+  "dropped": zod.number(),
+  "open": zod.number(),
+  "issuedAt": zod.coerce.date().nullable(),
+  "staleAt": zod.coerce.date().nullable().describe('issuedAt + 48h - the moves\' own promise becomes the clock')
+}),
+  "weeks": zod.array(zod.object({
+  "start": zod.coerce.date().describe('UTC ISO week start; bucketed server-side so the client never re-derives'),
+  "actions": zod.number()
+})).describe('Eight UTC weeks, oldest first'),
+  "activeWeeks": zod.number().describe('Consecutive weeks with at least one action, ending this week'),
+  "lastActionAt": zod.coerce.date().nullable()
+}).describe('The board\'s sensor. Every field counts a state change the owner caused, never a page load - see progress.ts for the rejected-metrics list.\n')
 })
 })
 
@@ -1049,6 +1443,8 @@ export const UpdateLeapMoveResponse = zod.object({
   "state": zod.enum(['pending', 'done', 'skipped']),
   "repKind": zod.string().describe('What artifact the do-it-with-me rep drafts (email, post, pitch, plan, message, none)'),
   "repDraft": zod.string().nullable().describe('Latest draft produced in the rep session'),
+  "cycleIndex": zod.number().describe('Which round of three this move belongs to; every check-in issues a fresh set'),
+  "doneAt": zod.coerce.date().nullable().describe('When this move left \'pending\''),
   "createdAt": zod.coerce.date()
 })
 

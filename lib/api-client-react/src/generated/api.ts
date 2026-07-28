@@ -47,6 +47,7 @@ import type {
   NlTask,
   NlTaskCreate,
   NlTaskUpdate,
+  NlTranscription,
   OpenaiConversation,
   OpenaiConversationInput,
   OpenaiConversationWithMessages,
@@ -1738,6 +1739,151 @@ export const useAnswerLeapInterview = <TError = ErrorType<ApiErrorMessage>,
         TContext
       > => {
       return useMutation(getAnswerLeapInterviewMutationOptions(options));
+    }
+
+export const getOpenLeapInterviewUrl = (token: string,) => {
+
+
+
+
+  return `/api/nextleap/boards/${token}/opening`
+}
+
+/**
+ * Board creation stays fast and model-free so the board renders instantly; this runs the opening turn afterwards, so the first pins mint into a board the owner is already looking at. Safe to call twice - a board that already has an assistant turn returns it unchanged.
+ * @summary Run the first interview turn on a fresh board (idempotent)
+ */
+export const openLeapInterview = async (token: string, options?: RequestInit): Promise<NlInterviewTurn> => {
+
+  return customFetch<NlInterviewTurn>(getOpenLeapInterviewUrl(token),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getOpenLeapInterviewMutationOptions = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openLeapInterview>>, TError,{token: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof openLeapInterview>>, TError,{token: string}, TContext> => {
+
+const mutationKey = ['openLeapInterview'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof openLeapInterview>>, {token: string}> = (props) => {
+          const {token} = props ?? {};
+
+          return  openLeapInterview(token,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type OpenLeapInterviewMutationResult = NonNullable<Awaited<ReturnType<typeof openLeapInterview>>>
+
+    export type OpenLeapInterviewMutationError = ErrorType<ApiErrorMessage>
+
+    /**
+ * @summary Run the first interview turn on a fresh board (idempotent)
+ */
+export const useOpenLeapInterview = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openLeapInterview>>, TError,{token: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof openLeapInterview>>,
+        TError,
+        {token: string},
+        TContext
+      > => {
+      return useMutation(getOpenLeapInterviewMutationOptions(options));
+    }
+
+export const getTranscribeLeapAudioUrl = (token: string,) => {
+
+
+
+
+  return `/api/nextleap/boards/${token}/transcriptions`
+}
+
+/**
+ * Raw audio in, text out. The client posts the recorder's Blob directly with a plain fetch rather than the generated hook - binary bodies through the generated mutator are not worth the fight, same precedent as the SSE chat stream. This entry keeps the contract complete.
+ * @summary Transcribe a recorded spoken answer (raw audio body)
+ */
+export const transcribeLeapAudio = async (token: string,
+    transcribeLeapAudioBody: Blob, options?: RequestInit): Promise<NlTranscription> => {
+
+  return customFetch<NlTranscription>(getTranscribeLeapAudioUrl(token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/octet-stream', ...options?.headers },
+    body: transcribeLeapAudioBody
+  }
+);}
+
+
+
+
+
+export const getTranscribeLeapAudioMutationOptions = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transcribeLeapAudio>>, TError,{token: string;data: BodyType<Blob>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof transcribeLeapAudio>>, TError,{token: string;data: BodyType<Blob>}, TContext> => {
+
+const mutationKey = ['transcribeLeapAudio'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof transcribeLeapAudio>>, {token: string;data: BodyType<Blob>}> = (props) => {
+          const {token,data} = props ?? {};
+
+          return  transcribeLeapAudio(token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TranscribeLeapAudioMutationResult = NonNullable<Awaited<ReturnType<typeof transcribeLeapAudio>>>
+    export type TranscribeLeapAudioMutationBody = BodyType<Blob>
+    export type TranscribeLeapAudioMutationError = ErrorType<ApiErrorMessage>
+
+    /**
+ * @summary Transcribe a recorded spoken answer (raw audio body)
+ */
+export const useTranscribeLeapAudio = <TError = ErrorType<ApiErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transcribeLeapAudio>>, TError,{token: string;data: BodyType<Blob>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof transcribeLeapAudio>>,
+        TError,
+        {token: string;data: BodyType<Blob>},
+        TContext
+      > => {
+      return useMutation(getTranscribeLeapAudioMutationOptions(options));
     }
 
 export const getSendLeapChatUrl = (token: string,) => {

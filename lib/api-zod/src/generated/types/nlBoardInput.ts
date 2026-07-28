@@ -8,9 +8,10 @@
 import type { NlBoardInputDoor } from './nlBoardInputDoor';
 
 export interface NlBoardInput {
-  door: NlBoardInputDoor;
+  /** Shape of the problem, not the domain - optional; defaults to ambition */
+  door?: NlBoardInputDoor;
   /** @minLength 1 */
   goalText: string;
-  /** First name, optional */
+  /** First name, optional - usually learned later via the intake op */
   name?: string;
 }

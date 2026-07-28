@@ -24,5 +24,12 @@ export interface NlMove {
      * @nullable
      */
   repDraft: string | null;
+  /** Which round of three this move belongs to; every check-in issues a fresh set */
+  cycleIndex: number;
+  /**
+     * When this move left 'pending'
+     * @nullable
+     */
+  doneAt: Date | null;
   createdAt: Date;
 }

@@ -510,7 +510,64 @@ export interface NlMove {
      * @nullable
      */
   repDraft: string | null;
+  /** Which round of three this move belongs to; every check-in issues a fresh set */
+  cycleIndex: number;
+  /**
+     * When this move left 'pending'
+     * @nullable
+     */
+  doneAt: string | null;
   createdAt: string;
+}
+
+export type NlAskType = typeof NlAskType[keyof typeof NlAskType];
+
+
+export const NlAskType = {
+  text: 'text',
+  single: 'single',
+  multi: 'multi',
+  rank: 'rank',
+  scale: 'scale',
+  image: 'image',
+} as const;
+
+export interface NlAskChoice {
+  /** Tap target text (<=40 chars; <=24 on image tiles) */
+  label: string;
+  /** Icon-registry key, image asks only; server-allowlisted */
+  icon?: string;
+  /** At most one choice per ask carries this */
+  recommended?: boolean;
+}
+
+/**
+ * How the current interview question gets answered. `type` picks the renderer; the remaining fields are that type's payload - the same contract shape as NlPin.kind/vizData. Always server-sanitized, so a malformed model reply arrives as null (just type) rather than broken.
+ */
+export interface NlAsk {
+  type: NlAskType;
+  /** text - hint inside the box */
+  placeholder?: string;
+  /** single | multi | image */
+  choices?: NlAskChoice[];
+  /** multi - most choices selectable */
+  maxPick?: number;
+  /** rank - the things to put in order */
+  items?: string[];
+  /** scale */
+  min?: number;
+  /** scale */
+  max?: number;
+  /** scale */
+  step?: number;
+  /** scale - where the handle starts (not "default", which is a schema keyword) */
+  startAt?: number;
+  /** scale - low end */
+  minLabel?: string;
+  /** scale - high end */
+  maxLabel?: string;
+  /** scale - short unit shown beside the number */
+  unit?: string;
 }
 
 export interface NlMessage {
@@ -523,10 +580,11 @@ export interface NlMessage {
   role: string;
   content: string;
   /**
-     * Tap-to-answer choices offered with this assistant turn
+     * Tap-to-answer chips offered with this assistant turn (chat threads)
      * @nullable
      */
   options: string[] | null;
+  ask?: NlAsk;
   createdAt: string;
 }
 
@@ -555,8 +613,55 @@ export interface NlTask {
   pinId: number;
   label: string;
   done: boolean;
+  /**
+     * When this item was ticked; cleared when it is un-ticked
+     * @nullable
+     */
+  doneAt: string | null;
   orderIndex: number;
   createdAt: string;
+}
+
+export interface NlProgressCycle {
+  index: number;
+  done: number;
+  dropped: number;
+  open: number;
+  /** @nullable */
+  issuedAt: string | null;
+  /**
+     * issuedAt + 48h - the moves' own promise becomes the clock
+     * @nullable
+     */
+  staleAt: string | null;
+}
+
+export interface NlProgressWeek {
+  /** UTC ISO week start; bucketed server-side so the client never re-derives */
+  start: string;
+  actions: number;
+}
+
+/**
+ * The board's sensor. Every field counts a state change the owner caused, never a page load - see progress.ts for the rejected-metrics list.
+ */
+export interface NlProgress {
+  /** Moves closed */
+  done: number;
+  /** Moves deliberately skipped - a decision, not a gap */
+  dropped: number;
+  /** Moves that produced a real draft */
+  reps: number;
+  /** Checklist items the owner ticked */
+  ticks: number;
+  checkins: number;
+  cycle: NlProgressCycle;
+  /** Eight UTC weeks, oldest first */
+  weeks: NlProgressWeek[];
+  /** Consecutive weeks with at least one action, ending this week */
+  activeWeeks: number;
+  /** @nullable */
+  lastActionAt: string | null;
 }
 
 export interface NlBoardState {
@@ -568,8 +673,12 @@ export interface NlBoardState {
   messages: NlMessage[];
   /** Checklist items across all pins on the board */
   tasks: NlTask[];
+  progress: NlProgress;
 }
 
+/**
+ * Shape of the problem, not the domain - optional; defaults to ambition
+ */
 export type NlBoardInputDoor = typeof NlBoardInputDoor[keyof typeof NlBoardInputDoor];
 
 
@@ -579,16 +688,21 @@ export const NlBoardInputDoor = {
 } as const;
 
 export interface NlBoardInput {
-  door: NlBoardInputDoor;
+  /** Shape of the problem, not the domain - optional; defaults to ambition */
+  door?: NlBoardInputDoor;
   /** @minLength 1 */
   goalText: string;
-  /** First name, optional */
+  /** First name, optional - usually learned later via the intake op */
   name?: string;
 }
 
 export interface NlAnswerInput {
   /** @minLength 1 */
   content: string;
+}
+
+export interface NlTranscription {
+  text: string;
 }
 
 export type NlInterviewTurnStage = typeof NlInterviewTurnStage[keyof typeof NlInterviewTurnStage];
@@ -600,13 +714,16 @@ export const NlInterviewTurnStage = {
 } as const;
 
 export interface NlInterviewTurn {
-  /** The coach's reply - acknowledgment plus next question, or the wrap-up */
+  /** The reply - acknowledgment plus next question, or the wrap-up */
   say: string;
   /**
-     * Tap-to-answer choices for this question, when the answer space is small
+     * Deprecated - legacy chip list; new interview turns carry `ask` instead
      * @nullable
      */
   options?: string[] | null;
+  ask?: NlAsk;
+  /** Questions remaining before the interview is force-finished in code */
+  questionsLeft: number;
   stage: NlInterviewTurnStage;
   newPinIds: number[];
   touchedPinIds: number[];

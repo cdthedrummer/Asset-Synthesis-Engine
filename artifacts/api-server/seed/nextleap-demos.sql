@@ -1,8 +1,11 @@
--- Next Leap demo personas: Maya (baker) and Dev (swim instructor).
+-- Next Leap demo personas: Maya (baker), Dev (swim instructor), Priya (care).
+-- Demo boards are the shop window, so they must look COMPLETE: every one needs
+-- at least one skip pin (the triage payoff), checklist items with spread-out
+-- done_at values (the week strip), and cycle_index set on moves.
 -- Idempotent: deletes and re-inserts both demo boards. Run against dev DB.
 BEGIN;
 
-DELETE FROM nl_boards WHERE token IN ('demo-baker','demo-swim');
+DELETE FROM nl_boards WHERE token IN ('demo-baker','demo-swim','demo-care');
 
 -- ============================================================ MAYA (baker)
 INSERT INTO nl_boards (token, kind, name, door, goal_text, ai_familiarity, craft_comfort, stage, stat_chips, trajectory, bet, created_at, updated_at)
@@ -206,5 +209,175 @@ VALUES (
   $s$WSI certification — a full clinic without the cert is a hobby, not a program.$s$,
   NOW() - interval '26 hours'
 );
+
+-- ==================================================== SKIP PINS (the payoff)
+-- The product's promise is triage relief, and the reveal leads with what comes
+-- OFF the board. A demo with nothing skipped shows a to-do list instead.
+INSERT INTO nl_pins (board_id, title, verdict, verdict_why, difficulty, impact, kind, viz_data, verify_yourself, last_touched_at)
+VALUES
+  ((SELECT id FROM nl_boards WHERE token='demo-baker'),
+   'Farmers market second stall', 'skip',
+   $s$Another Saturday stall doubles the baking and the oven is already the cap. Costs more than it moves.$s$,
+   7, 3, 'bars',
+   $j${"unit":"hrs/wk","bars":[{"label":"BAKE","value":18},{"label":"STALL","value":9},{"label":"SPARE","value":10}],"capLine":{"value":10,"label":"spare"}}$j$::jsonb,
+   false, NOW() - interval '5 days'),
+  ((SELECT id FROM nl_boards WHERE token='demo-swim'),
+   'Own pool rental', 'skip',
+   $s$Renting water before you run a program is paying for the hard part twice. Not now.$s$,
+   8, 2, 'stat',
+   $j${"value":"$640","label":"PER MONTH","sub":"RENT"}$j$::jsonb,
+   false, NOW() - interval '6 days');
+
+-- ============================================== MOVE CYCLES + DONE STAMPS
+-- Every check-in issues a fresh set of three. Maya has been through one, so her
+-- board exercises cycle_index and the "2 of 3 this round" count.
+UPDATE nl_moves SET cycle_index = 0,
+  done_at = CASE WHEN state <> 'pending' THEN NOW() - interval '9 days' ELSE NULL END
+WHERE board_id = (SELECT id FROM nl_boards WHERE token='demo-baker');
+
+UPDATE nl_moves SET cycle_index = 1, created_at = NOW() - interval '26 hours'
+WHERE board_id = (SELECT id FROM nl_boards WHERE token='demo-baker')
+  AND state = 'pending';
+
+INSERT INTO nl_moves (board_id, pin_id, title, first48, order_index, cycle_index, state, rep_kind, done_at, created_at)
+VALUES (
+  (SELECT id FROM nl_boards WHERE token='demo-baker'),
+  (SELECT p.id FROM nl_pins p JOIN nl_boards b ON p.board_id=b.id WHERE b.token='demo-baker' AND p.title='Food safety cert'),
+  'Book the food handler exam', $s$Pick a date this week and pay the $28. Two minutes.$s$,
+  2, 1, 'done', 'none', NOW() - interval '30 hours', NOW() - interval '26 hours'
+);
+
+UPDATE nl_moves SET cycle_index = 0,
+  done_at = CASE WHEN state <> 'pending' THEN NOW() - interval '3 days' ELSE NULL END
+WHERE board_id = (SELECT id FROM nl_boards WHERE token='demo-swim');
+
+-- ============================================================== CHECKLISTS
+-- done_at values are spread across six weeks and deliberately leave one week
+-- empty — the strip should read like a real person, not a filled bar.
+INSERT INTO nl_tasks (board_id, pin_id, label, done, done_at, order_index)
+VALUES
+  ((SELECT id FROM nl_boards WHERE token='demo-baker'),
+   (SELECT p.id FROM nl_pins p JOIN nl_boards b ON p.board_id=b.id WHERE b.token='demo-baker' AND p.title='Cottage food permit'),
+   'Print the county application', true, NOW() - interval '34 days', 0),
+  ((SELECT id FROM nl_boards WHERE token='demo-baker'),
+   (SELECT p.id FROM nl_pins p JOIN nl_boards b ON p.board_id=b.id WHERE b.token='demo-baker' AND p.title='Cottage food permit'),
+   'Measure the kitchen for the diagram', true, NOW() - interval '20 days', 1),
+  ((SELECT id FROM nl_boards WHERE token='demo-baker'),
+   (SELECT p.id FROM nl_pins p JOIN nl_boards b ON p.board_id=b.id WHERE b.token='demo-baker' AND p.title='Cottage food permit'),
+   'Ask Rosa which inspector she got', false, NULL, 2),
+  ((SELECT id FROM nl_boards WHERE token='demo-baker'),
+   (SELECT p.id FROM nl_pins p JOIN nl_boards b ON p.board_id=b.id WHERE b.token='demo-baker' AND p.title='Food safety cert'),
+   'Finish module 3', true, NOW() - interval '6 days', 0),
+  ((SELECT id FROM nl_boards WHERE token='demo-baker'),
+   (SELECT p.id FROM nl_pins p JOIN nl_boards b ON p.board_id=b.id WHERE b.token='demo-baker' AND p.title='Food safety cert'),
+   'Modules 4 to 6', false, NULL, 1),
+  ((SELECT id FROM nl_boards WHERE token='demo-swim'),
+   (SELECT p.id FROM nl_pins p JOIN nl_boards b ON p.board_id=b.id WHERE b.token='demo-swim' AND p.title='WSI certification'),
+   'Find the nearest course date', true, NOW() - interval '13 days', 0),
+  ((SELECT id FROM nl_boards WHERE token='demo-swim'),
+   (SELECT p.id FROM nl_pins p JOIN nl_boards b ON p.board_id=b.id WHERE b.token='demo-swim' AND p.title='WSI certification'),
+   'Register and pay', false, NULL, 1),
+  ((SELECT id FROM nl_boards WHERE token='demo-swim'),
+   (SELECT p.id FROM nl_pins p JOIN nl_boards b ON p.board_id=b.id WHERE b.token='demo-swim' AND p.title='Saturday stroke clinic'),
+   'Text the five who said yes', true, NOW() - interval '2 days', 0);
+
+-- ============================================================ PRIYA (care)
+-- The juggle door had no shop window at all, and both other demos are goals
+-- that look like small businesses. This one proves the product isn't career
+-- software, and it naturally exercises the verify-yourself rail: a Medicaid
+-- five-year look-back is exactly where we point at a human, not a guess.
+INSERT INTO nl_boards (token, kind, name, door, goal_text, ai_familiarity, craft_comfort, stage, stat_chips, trajectory, bet, created_at, updated_at)
+VALUES (
+  'demo-care', 'demo', 'Priya', 'juggle',
+  $s$Mum can't live alone much longer and I'm the one holding all of it$s$,
+  'new', 'none', 'board',
+  $j$[{"value":"11","label":"TOURED","tone":"neutral"},{"value":"$2,400","label":"PER MONTH","tone":"warn"},{"value":"14 MO","label":"SAVINGS LAST","tone":"warn"}]$j$::jsonb,
+  $j${"title":"NEXT SUMMER","headline":"$2,400","unit":"/mo","series":[{"x":"FEB","y":900,"projected":false},{"x":"MAR","y":900,"projected":false},{"x":"APR","y":1400,"projected":false},{"x":"MAY","y":1400,"projected":false},{"x":"JUN","y":1900,"projected":false},{"x":"SEP","y":2400,"projected":true},{"x":"DEC","y":2400,"projected":true},{"x":"MAR","y":2400,"projected":true},{"x":"JUN","y":2400,"projected":true}],"milestones":[{"x":"SEP","label":"MOVE IN"},{"x":"MAR","label":"REVIEW"}]}$j$::jsonb,
+  $j${"pinTitle":"Split the load with siblings","text":"The sibling conversation. You'll keep doing it all yourself because that's faster than asking twice — and it's the only thing on here that gets worse if you wait."}$j$::jsonb,
+  NOW() - interval '38 days', NOW() - interval '5 hours'
+);
+
+INSERT INTO nl_pins (board_id, title, verdict, verdict_why, difficulty, impact, kind, viz_data, verify_yourself, last_touched_at)
+VALUES
+  ((SELECT id FROM nl_boards WHERE token='demo-care'), 'Places toured', 'start',
+   $s$Eleven visits and a clear top two. You know more than you think you do.$s$,
+   3, 6, 'pipeline',
+   $j${"items":[{"name":"Northview Care","status":"TOUR MON","state":"active"},{"name":"Rosewood","status":"WAITLIST","state":"todo"},{"name":"Elm House","status":"RULED OUT","state":"done"}]}$j$::jsonb,
+   false, NOW() - interval '5 hours'),
+  ((SELECT id FROM nl_boards WHERE token='demo-care'), 'What the money covers', 'gethelp',
+   $s$A five-year look-back decides whether the savings last two years or fourteen months. That is an elder-law question, not a reading-the-website question.$s$,
+   6, 9, 'table',
+   $j${"rows":[{"label":"Medicaid look-back","state":"waiting","note":"5 YR RULE"},{"label":"Her pension","state":"done","note":"CONFIRMED"},{"label":"House equity","state":"todo","note":"UNKNOWN"},{"label":"Long-term care policy","state":"waiting","note":"CHECK"}]}$j$::jsonb,
+   true, NOW() - interval '2 days'),
+  ((SELECT id FROM nl_boards WHERE token='demo-care'), 'Split the load with siblings', 'start',
+   $s$Three of you, one doing everything. This is the pin that changes your year, not hers.$s$,
+   7, 8, 'bars',
+   $j${"unit":"hrs/wk","bars":[{"label":"YOU","value":16},{"label":"RAJ","value":2},{"label":"ANITA","value":1}]}$j$::jsonb,
+   false, NOW() - interval '1 day'),
+  ((SELECT id FROM nl_boards WHERE token='demo-care'), 'Sell the house now', 'skip',
+   $s$Not while the look-back is unanswered — selling first can cost more than it raises. It has a date, and the date is after the lawyer.$s$,
+   5, 4, 'stat',
+   $j${"value":"AFTER","label":"THE LAWYER","sub":"NOT YET"}$j$::jsonb,
+   true, NOW() - interval '4 days'),
+  ((SELECT id FROM nl_boards WHERE token='demo-care'), 'Her own say in it', 'start',
+   $s$She has toured none of them. The list gets shorter and easier the moment she sees two.$s$,
+   4, 7, 'steps',
+   $j${"steps":[{"label":"Talked money","state":"done"},{"label":"Talked moving","state":"active"},{"label":"She visits two","state":"todo"},{"label":"She picks","state":"todo"}],"caption":"her decision, your legwork"}$j$::jsonb,
+   false, NOW() - interval '3 days'),
+  ((SELECT id FROM nl_boards WHERE token='demo-care'), 'Your own week', 'schedule',
+   $s$Sixteen hours a week of care and no hours of anything else is how carers end up as patients. Book one evening back, this month.$s$,
+   4, 6, 'calendar',
+   $j${"month":"AUG","marks":[{"day":6,"kind":"event"},{"day":13,"kind":"event"},{"day":20,"kind":"due"}],"caption":"one evening back"}$j$::jsonb,
+   false, NOW() - interval '6 days');
+
+INSERT INTO nl_moves (board_id, pin_id, title, first48, order_index, cycle_index, state, rep_kind, done_at, created_at)
+VALUES
+  ((SELECT id FROM nl_boards WHERE token='demo-care'),
+   (SELECT p.id FROM nl_pins p JOIN nl_boards b ON p.board_id=b.id WHERE b.token='demo-care' AND p.title='What the money covers'),
+   'Book an elder-law consult', $s$One call to ask for a paid first appointment. Say "five-year look-back" and they will know what you need.$s$,
+   0, 0, 'pending', 'none', NULL, NOW() - interval '2 days'),
+  ((SELECT id FROM nl_boards WHERE token='demo-care'),
+   (SELECT p.id FROM nl_pins p JOIN nl_boards b ON p.board_id=b.id WHERE b.token='demo-care' AND p.title='Split the load with siblings'),
+   'Send Raj and Anita the hours', $s$Not a complaint — the three bars from this board and one question: which of these do you take?$s$,
+   1, 0, 'pending', 'message', NULL, NOW() - interval '2 days'),
+  ((SELECT id FROM nl_boards WHERE token='demo-care'),
+   (SELECT p.id FROM nl_pins p JOIN nl_boards b ON p.board_id=b.id WHERE b.token='demo-care' AND p.title='Her own say in it'),
+   'Put Northview in front of her', $s$Monday tour, two seats. Ask her once, then stop selling it.$s$,
+   2, 0, 'done', 'none', NOW() - interval '28 hours', NOW() - interval '2 days');
+
+INSERT INTO nl_tasks (board_id, pin_id, label, done, done_at, order_index)
+VALUES
+  ((SELECT id FROM nl_boards WHERE token='demo-care'),
+   (SELECT p.id FROM nl_pins p JOIN nl_boards b ON p.board_id=b.id WHERE b.token='demo-care' AND p.title='What the money covers'),
+   'Find her pension statement', true, NOW() - interval '27 days', 0),
+  ((SELECT id FROM nl_boards WHERE token='demo-care'),
+   (SELECT p.id FROM nl_pins p JOIN nl_boards b ON p.board_id=b.id WHERE b.token='demo-care' AND p.title='What the money covers'),
+   'Dig out the insurance folder', true, NOW() - interval '12 days', 1),
+  ((SELECT id FROM nl_boards WHERE token='demo-care'),
+   (SELECT p.id FROM nl_pins p JOIN nl_boards b ON p.board_id=b.id WHERE b.token='demo-care' AND p.title='What the money covers'),
+   'Ask about the look-back', false, NULL, 2),
+  ((SELECT id FROM nl_boards WHERE token='demo-care'),
+   (SELECT p.id FROM nl_pins p JOIN nl_boards b ON p.board_id=b.id WHERE b.token='demo-care' AND p.title='Places toured'),
+   'Second visit to Northview', true, NOW() - interval '30 hours', 0);
+
+INSERT INTO nl_messages (board_id, pin_id, move_id, role, content, created_at) VALUES
+  ((SELECT id FROM nl_boards WHERE token='demo-care'), NULL, NULL, 'user',
+   $s$Mum can't live alone much longer and I'm the one holding all of it$s$, NOW() - interval '38 days'),
+  ((SELECT id FROM nl_boards WHERE token='demo-care'), NULL, NULL, 'assistant',
+   $s$Eleven tours in and the housing question is nearly answered. The two that aren't: what the money actually covers, and why you're doing sixteen hours a week to your brother's two. Board's current — argue with anything that reads wrong.$s$, NOW() - interval '5 hours');
+
+INSERT INTO nl_checkins (board_id, note, summary, changes, dodged, created_at)
+VALUES (
+  (SELECT id FROM nl_boards WHERE token='demo-care'),
+  $s$Took Mum to Northview and she liked the garden. Still haven't rung the lawyer or spoken to Raj.$s$,
+  $s$She liked the garden — that's the first time she's chosen anything in this, and it moves the whole housing question forward. The two you didn't do are the two that cost money and pride. One of them has a five-year clock on it.$s$,
+  (SELECT jsonb_build_array(jsonb_build_object(
+     'pinId', (SELECT p.id FROM nl_pins p JOIN nl_boards b ON p.board_id=b.id WHERE b.token='demo-care' AND p.title='Her own say in it'),
+     'field','verdict','from','schedule','to','start',
+     'why','She picked something. That turns a conversation into a shortlist.'))),
+  $s$Split the load with siblings — every week you wait, doing it all yourself becomes the arrangement instead of the emergency.$s$,
+  NOW() - interval '27 hours'
+);
+
 
 COMMIT;

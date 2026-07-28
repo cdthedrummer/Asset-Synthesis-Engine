@@ -6,6 +6,7 @@ import type {
   NlPin,
   NlTask,
 } from "@workspace/db";
+import type { Progress } from "./progress";
 
 export function serializeNlBoard(b: NlBoard) {
   return {
@@ -56,11 +57,17 @@ export function serializeNlMove(m: NlMove) {
     state: m.state,
     repKind: m.repKind,
     repDraft: m.repDraft ?? null,
+    cycleIndex: m.cycleIndex,
+    doneAt: m.doneAt?.toISOString() ?? null,
     createdAt: m.createdAt.toISOString(),
   };
 }
 
 export function serializeNlMessage(m: NlMessage) {
+  // `ask` is optional in the contract, not nullable — so OMIT the key when
+  // there is no ask. Sending an explicit null would typecheck fine here and
+  // then break narrowing on the client.
+  const ask = (m.ask as Record<string, unknown> | null) ?? null;
   return {
     id: m.id,
     boardId: m.boardId,
@@ -69,6 +76,7 @@ export function serializeNlMessage(m: NlMessage) {
     role: m.role,
     content: m.content,
     options: (m.options as string[] | null) ?? null,
+    ...(ask ? { ask } : {}),
     createdAt: m.createdAt.toISOString(),
   };
 }
@@ -80,6 +88,7 @@ export function serializeNlTask(t: NlTask) {
     pinId: t.pinId,
     label: t.label,
     done: t.done,
+    doneAt: t.doneAt?.toISOString() ?? null,
     orderIndex: t.orderIndex,
     createdAt: t.createdAt.toISOString(),
   };
@@ -95,4 +104,9 @@ export function serializeNlCheckin(c: NlCheckin) {
     dodged: c.dodged ?? null,
     createdAt: c.createdAt.toISOString(),
   };
+}
+
+/** Already ISO strings and plain numbers — pass through unchanged. */
+export function serializeNlProgress(p: Progress) {
+  return p;
 }

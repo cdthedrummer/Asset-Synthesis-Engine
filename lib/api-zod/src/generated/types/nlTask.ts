@@ -12,6 +12,11 @@ export interface NlTask {
   pinId: number;
   label: string;
   done: boolean;
+  /**
+     * When this item was ticked; cleared when it is un-ticked
+     * @nullable
+     */
+  doneAt: Date | null;
   orderIndex: number;
   createdAt: Date;
 }

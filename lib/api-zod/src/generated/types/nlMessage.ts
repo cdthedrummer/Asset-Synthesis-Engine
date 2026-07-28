@@ -5,6 +5,7 @@
  * Portfolio Pulse API
  * OpenAPI spec version: 0.1.0
  */
+import type { NlAsk } from './nlAsk';
 
 export interface NlMessage {
   id: number;
@@ -16,9 +17,10 @@ export interface NlMessage {
   role: string;
   content: string;
   /**
-     * Tap-to-answer choices offered with this assistant turn
+     * Tap-to-answer chips offered with this assistant turn (chat threads)
      * @nullable
      */
   options: string[] | null;
+  ask?: NlAsk;
   createdAt: Date;
 }
