@@ -39,6 +39,7 @@ import {
   chatSystem,
   checkinSystem,
   deletePinAndScrub,
+  ensureAskQuestion,
   generateToken,
   groomBoard,
   interviewSystem,
@@ -259,8 +260,10 @@ router.post("/nextleap/boards/:token/opening", async (req, res) => {
       { role: "user", content: board.goalText },
     ]);
     if (typeof parsed["say"] === "string" && parsed["say"].trim()) {
-      say = parsed["say"].trim();
-      ask = sanitizeAsk(parsed["ask"]);
+      ({ say, ask } = await ensureAskQuestion(
+        parsed["say"].trim(),
+        sanitizeAsk(parsed["ask"]),
+      ));
       const opsResult = await applyOps(board, parsed["ops"]);
       newPinIds = opsResult.newPinIds;
       touchedPinIds = opsResult.touchedPinIds;
@@ -329,7 +332,7 @@ router.post("/nextleap/boards/:token/answers", async (req, res) => {
       })),
     ]);
 
-    const say =
+    const rawSay =
       typeof parsed["say"] === "string" && parsed["say"].trim()
         ? parsed["say"].trim()
         : "Say more — what does that look like in a normal week?";
@@ -339,7 +342,9 @@ router.post("/nextleap/boards/:token/answers", async (req, res) => {
     const done =
       parsed["done"] === true || questionsAsked >= MAX_INTERVIEW_QUESTIONS;
     // No ask on the wrap-up — the board takes over.
-    const ask = done ? null : sanitizeAsk(parsed["ask"]);
+    const { say, ask } = done
+      ? { say: rawSay, ask: null }
+      : await ensureAskQuestion(rawSay, sanitizeAsk(parsed["ask"]));
     const opsResult = await applyOps(board, parsed["ops"]);
 
     let stage = board.stage;

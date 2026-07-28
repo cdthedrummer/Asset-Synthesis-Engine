@@ -294,6 +294,7 @@ export const ASK_SPEC = `HOW YOU ASK — every question ships with an "ask" that
 {"type":"text","placeholder":"a few words"} — free typing or talking. The most expensive thing you can ask a person for. You get maybe one of these after the opening.
 "recommended":true goes on at most ONE choice, and only when you'd actually push them there. It's a nudge with your name on it, not decoration.
 
+THE ASK NEVER SPEAKS FOR ITSELF. Chips, tiles and sliders are answers — the question lives in your say, nowhere else. When an ask is attached, your say must END with the exact question those choices answer, so a stranger reading the say and the choices together sees question and answers, not a statement with buttons under it. React to what they just said first — but a reaction is never a substitute for asking.
 EFFORT GOES DOWN WHILE THE BOARD GOES UP. They typed the hard one to get in the door. Question two is a tap, no exceptions. After that: taps, drags, orderings. A "text" ask is a cost you have to earn, and never for something a scale could hold.
 NEVER fake a tap. If the honest answer is a name, a story, or a list only they have, ask for text and pay the cost. Choices you invented that don't fit their life are worse than a blank box — they teach them this thing isn't listening.
 Before you finish you need at least one real number from them. If you don't have one, your last question is that number, as a scale.`;
@@ -440,6 +441,49 @@ export async function callLeapJson(
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error("leap JSON call failed");
+}
+
+/**
+ * A say that ships choice-style answers (taps, tiles, a slider) but never asks
+ * a question reads like a non-sequitur — the widget has no question text of
+ * its own. One repair call asks the model to rewrite the say around the same
+ * ask; if that still fails, the ask is dropped so the client falls back to a
+ * plain text box under a coherent (if question-less) reply.
+ *
+ * `rank` and `text` asks are exempt: "Put these in order." is a legitimate
+ * imperative, and a text box under a prompt like "Say more —" still works.
+ */
+/** The question has to be the LAST thing said — a "?" buried mid-reply still
+ * leaves a statement sitting on top of the chips. Trailing quotes/parens are
+ * tolerated; anything else after the "?" isn't. */
+export function endsWithQuestion(say: string): boolean {
+  return /\?["'\u201d\u2019)\]]*$/.test(say.trim());
+}
+
+export async function ensureAskQuestion(
+  say: string,
+  ask: LeapAsk | null,
+): Promise<{ say: string; ask: LeapAsk | null }> {
+  if (!ask || ask.type === "rank" || ask.type === "text" || endsWithQuestion(say))
+    return { say, ask };
+  try {
+    const fixed = await callLeapJson([
+      {
+        role: "system",
+        content: `${COACH_VOICE}
+You wrote a reply that shows answer choices but never asks the question they answer. Rewrite the reply so it ENDS with the one question these choices are direct answers to. Keep whatever reaction is worth keeping, plain words, three sentences max, no markdown.
+The reply: ${JSON.stringify(say)}
+The answer widget: ${JSON.stringify(ask)}
+Reply with ONLY {"say":"..."}`,
+      },
+    ]);
+    const s = typeof fixed["say"] === "string" ? fixed["say"].trim() : "";
+    if (s && endsWithQuestion(s)) return { say: s, ask };
+    logger.warn("leap ask-question repair returned no question");
+  } catch (err) {
+    logger.warn({ err }, "leap ask-question repair failed");
+  }
+  return { say, ask: null };
 }
 
 // ---------------------------------------------------------------------------
@@ -947,7 +991,7 @@ ${OPS_SPEC}
 ${ASK_SPEC}
 
 INTERVIEW RULES:
-- ONE question per turn. At most two short sentences before it. React to what they just said first — specific, not "great!".
+- ONE question per turn. At most two short sentences before it. React to what they just said first — specific, not "great!" — and then your say ENDS with the question itself. If your ask has choices, the last sentence of your say is the question they answer.
 - You've asked ${questionsAsked} questions. Their goal was question one and it's already answered. Aim for four more, five at the outside; at ${MAX_INTERVIEW_QUESTIONS} you MUST finish. This gets better by getting fuller, not by going longer.
 - Somewhere in the first two questions, learn two things without it feeling like a form: how much they've actually used AI tools like ChatGPT for real work, and how confident they are in the main skill this thing needs — whatever that skill turns out to be for them. Both are single taps or scales, never text. Emit the intake op the moment an answer tells you.
 - Ask for numbers. "How many orders last month?" beats "how's it going?". If an answer is vague, push once — sharp friends don't accept "pretty good".
