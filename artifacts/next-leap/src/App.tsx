@@ -5,6 +5,7 @@ import NotFound from '@/pages/not-found';
 import { Route, Switch, Router as WouterRouter } from 'wouter';
 import Home from '@/pages/home';
 import Board from '@/pages/board';
+import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 
 const queryClient = new QueryClient();
 
@@ -19,6 +20,9 @@ function Router() {
 }
 
 function App() {
+  // Publishes --kb-h for the bottom docks. Mounted once, app-wide.
+  useKeyboardInset();
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

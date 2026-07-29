@@ -23,7 +23,7 @@ import { formatRecency } from './pin-item';
 type ManageMode = 'none' | 'edit' | 'append' | 'delete';
 
 const ACTION_BTN =
-  'flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-border bg-card text-[11px] font-mono font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground hover:border-foreground/40 active:scale-95 transition-all';
+  'flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-border bg-card text-kicker-lg font-mono font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground hover:border-foreground/40 active:scale-95 transition-all';
 
 /**
  * Every pin opens into this: recap of why it exists, its visual, deeper
@@ -168,7 +168,7 @@ export const ExpandedPinView = ({
 
   return (
     <div className="fixed inset-0 bg-background z-[60] flex flex-col animate-in slide-in-from-bottom-4 duration-300">
-      <div className="px-4 pt-6 pb-4 border-b border-border bg-background/80 backdrop-blur-xl">
+      <div className="px-4 pt-safe pb-4 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="max-w-[640px] mx-auto">
           <Breadcrumb onHome={onHome} onBack={onBack} title={pin.title} />
         </div>
@@ -177,19 +177,19 @@ export const ExpandedPinView = ({
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-[640px] mx-auto p-5 sm:p-6 space-y-5 pb-10">
           {/* The pin itself */}
-          <div className="bg-card border border-border rounded-[24px] p-5 shadow-sm">
+          <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
             <Visualizer kind={pin.kind} data={pin.vizData} />
           </div>
 
           {/* Why it's on the board */}
-          <div className="bg-card border border-border rounded-[24px] p-5 shadow-sm">
+          <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3 mb-3">
-              <VerdictStamp verdict={pin.verdict} className="text-[10px] px-2 py-1" />
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              <VerdictStamp verdict={pin.verdict} className="text-kicker px-2 py-1" />
+              <span className="font-mono text-kicker uppercase tracking-widest text-muted-foreground">
                 {formatRecency(pin.lastTouchedAt)}
               </span>
             </div>
-            <p className="text-foreground text-[16px] leading-relaxed font-medium">{pin.verdictWhy}</p>
+            <p className="text-foreground text-body-lg leading-relaxed font-medium">{pin.verdictWhy}</p>
           </div>
 
           {/* Manage the pin */}
@@ -202,31 +202,31 @@ export const ExpandedPinView = ({
             </button>
             <button
               onClick={() => openMode('delete')}
-              className={`${ACTION_BTN} hover:text-[#BE123C] hover:border-[#BE123C]/40`}
+              className={`${ACTION_BTN} hover:text-danger hover:border-danger/40`}
             >
               <Trash2 className="w-3 h-3" /> Delete
             </button>
           </div>
 
           {mode === 'edit' && (
-            <div className="bg-card border border-border rounded-[20px] p-4 space-y-3">
+            <div className="bg-card border border-border rounded-lg p-4 space-y-3">
               <div>
-                <label className="block text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground mb-1.5">Name</label>
+                <label className="block text-kicker font-mono font-bold uppercase tracking-widest text-muted-foreground mb-1.5">Name</label>
                 <input
                   value={editTitle}
                   onChange={e => setEditTitle(e.target.value)}
                   maxLength={80}
-                  className="w-full bg-background border border-border rounded-xl px-4 py-3 font-sans text-[15px] outline-none focus:ring-2 focus:ring-[#10B981]"
+                  className="w-full bg-background border border-rule rounded-md px-4 py-3 font-sans text-body-lg outline-none focus:ring-2 focus:ring-ink-1"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground mb-1.5">Why this verdict</label>
+                <label className="block text-kicker font-mono font-bold uppercase tracking-widest text-muted-foreground mb-1.5">Why this verdict</label>
                 <textarea
                   value={editWhy}
                   onChange={e => setEditWhy(e.target.value)}
                   maxLength={240}
                   rows={3}
-                  className="w-full bg-background border border-border rounded-xl px-4 py-3 font-sans text-[15px] outline-none focus:ring-2 focus:ring-[#10B981] resize-none"
+                  className="w-full bg-background border border-rule rounded-md px-4 py-3 font-sans text-body-lg outline-none focus:ring-2 focus:ring-ink-1 resize-none"
                 />
               </div>
               <div className="flex justify-end gap-2">
@@ -234,7 +234,7 @@ export const ExpandedPinView = ({
                 <button
                   onClick={saveEdit}
                   disabled={updatePin.isPending || !editTitle.trim() || !editWhy.trim()}
-                  className="px-4 py-2 rounded-full bg-[#10B981] hover:bg-[#059669] text-white text-[11px] font-mono font-bold uppercase tracking-widest disabled:opacity-50 active:scale-95 transition-all"
+                  className="px-4 py-2 rounded-full bg-ink-1 hover:bg-ink-2 text-on-ink text-kicker-lg font-mono font-bold uppercase tracking-widest disabled:opacity-50 active:scale-95 transition-all"
                 >
                   {updatePin.isPending ? 'Saving…' : 'Save'}
                 </button>
@@ -243,8 +243,8 @@ export const ExpandedPinView = ({
           )}
 
           {mode === 'append' && (
-            <form onSubmit={submitAppend} className="bg-card border border-border rounded-[20px] p-4 space-y-3">
-              <p className="text-[13px] text-muted-foreground font-sans leading-relaxed">
+            <form onSubmit={submitAppend} className="bg-card border border-border rounded-lg p-4 space-y-3">
+              <p className="text-caption text-muted-foreground font-sans leading-relaxed">
                 Tell it something new — a number, a call you made, a change of plan. The pin reworks itself around it.
               </p>
               <textarea
@@ -252,13 +252,13 @@ export const ExpandedPinView = ({
                 onChange={e => setAppendText(e.target.value)}
                 rows={2}
                 placeholder="Got quoted $1,400 for the popcorn machine..."
-                className="w-full bg-background border border-border rounded-xl px-4 py-3 font-sans text-[15px] outline-none focus:ring-2 focus:ring-[#10B981] resize-none"
+                className="w-full bg-background border border-rule rounded-md px-4 py-3 font-sans text-body-lg outline-none focus:ring-2 focus:ring-ink-1 resize-none"
               />
               <div className="flex justify-end">
                 <button
                   type="submit"
                   disabled={!appendText.trim() || appendPin.isPending}
-                  className="px-4 py-2 rounded-full bg-[#10B981] hover:bg-[#059669] text-white text-[11px] font-mono font-bold uppercase tracking-widest disabled:opacity-50 active:scale-95 transition-all"
+                  className="px-4 py-2 rounded-full bg-ink-1 hover:bg-ink-2 text-on-ink text-kicker-lg font-mono font-bold uppercase tracking-widest disabled:opacity-50 active:scale-95 transition-all"
                 >
                   {appendPin.isPending ? 'Reworking the pin…' : 'Fold it in'}
                 </button>
@@ -267,8 +267,8 @@ export const ExpandedPinView = ({
           )}
 
           {mode === 'delete' && (
-            <div className="bg-[#FFF1F2] border border-[#FECDD3] rounded-[20px] p-4">
-              <p className="text-[14px] font-sans font-medium text-[#9F1239] mb-3">
+            <div className="bg-danger-tint border border-danger-tint rounded-lg p-4">
+              <p className="text-body font-sans font-medium text-danger-deep mb-3">
                 Take this off the board? Its chat and checklist go with it.
               </p>
               <div className="flex justify-end gap-2">
@@ -276,7 +276,7 @@ export const ExpandedPinView = ({
                 <button
                   onClick={confirmDelete}
                   disabled={deletePin.isPending}
-                  className="px-4 py-2 rounded-full bg-[#BE123C] hover:bg-[#9F1239] text-white text-[11px] font-mono font-bold uppercase tracking-widest disabled:opacity-50 active:scale-95 transition-all"
+                  className="px-4 py-2 rounded-full bg-danger hover:bg-danger-deep text-white text-kicker-lg font-mono font-bold uppercase tracking-widest disabled:opacity-50 active:scale-95 transition-all"
                 >
                   {deletePin.isPending ? 'Deleting…' : 'Delete pin'}
                 </button>
@@ -292,7 +292,7 @@ export const ExpandedPinView = ({
                   return (
                     <div key={i}>
                       {block.title && <h3 className="font-bold text-lg mb-2 font-sans">{block.title}</h3>}
-                      <p className="text-muted-foreground leading-relaxed text-sm">{block.body}</p>
+                      <p className="text-muted-foreground leading-relaxed text-body">{block.body}</p>
                     </div>
                   );
                 }
@@ -301,18 +301,18 @@ export const ExpandedPinView = ({
                     <div key={i} className="space-y-6 relative before:absolute before:inset-y-4 before:left-[19px] before:w-[2px] before:bg-border">
                       {block.title && <h3 className="font-bold text-lg mb-4 font-sans ml-11">{block.title}</h3>}
                       {block.steps?.map((step: any, j: number) => (
-                        <div key={j} className="bg-card border border-border rounded-[20px] p-5 ml-11 relative shadow-sm min-w-0">
+                        <div key={j} className="bg-card border border-border rounded-lg p-5 ml-11 relative shadow-sm min-w-0">
                           <div className="absolute top-6 -left-[35px] w-[16px] h-[16px] rounded-full bg-white border-[4px] border-border z-10 flex items-center justify-center">
-                            {step.state === 'done' && <div className="w-2 h-2 bg-[#10B981] rounded-full"></div>}
+                            {step.state === 'done' && <div className="w-2 h-2 bg-moss rounded-full"></div>}
                           </div>
                           <div className="flex flex-col gap-2 mb-4 min-w-0">
-                            <span className={`px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-widest self-start truncate max-w-full ${step.state === 'done' ? 'bg-[#ECFDF5] text-[#10B981]' : step.state === 'active' ? 'bg-[#FFFBEB] text-[#D97706]' : 'bg-muted text-muted-foreground'}`}>
+                            <span className={`px-2.5 py-1 rounded-full text-kicker-sm font-mono font-bold uppercase tracking-widest self-start truncate max-w-full ${step.state === 'done' ? 'bg-moss-tint text-moss' : step.state === 'active' ? 'bg-ochre-tint text-ochre' : 'bg-muted text-muted-foreground'}`}>
                               {step.status || step.state}
                             </span>
-                            <h3 className="font-bold text-foreground text-[18px] leading-tight font-sans truncate max-w-full">{step.label}</h3>
+                            <h3 className="font-bold text-foreground text-body-lg leading-tight font-sans truncate max-w-full">{step.label}</h3>
                           </div>
                           {step.link && (
-                            <button className={`flex items-center gap-2 ${step.state === 'done' ? 'text-[#10B981]' : 'text-muted-foreground'} text-[12px] font-mono font-bold uppercase tracking-widest active:opacity-70 transition-opacity min-w-0 max-w-full`}>
+                            <button className={`flex items-center gap-2 ${step.state === 'done' ? 'text-moss' : 'text-muted-foreground'} text-caption font-mono font-bold uppercase tracking-widest active:opacity-70 transition-opacity min-w-0 max-w-full`}>
                               <ExternalLink className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{step.link}</span>
                             </button>
                           )}
@@ -330,25 +330,25 @@ export const ExpandedPinView = ({
 
           {/* The pin talks back */}
           <div className="pt-2">
-            <h3 className="font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-4">Talk it out</h3>
+            <h3 className="font-mono text-kicker font-bold uppercase tracking-widest text-muted-foreground mb-4">Talk it out</h3>
             <div className="space-y-4">
               {messages.length === 0 && !isStreaming && (
                 <div className="space-y-3">
-                  <p className="text-muted-foreground text-sm">Poke at it — the board talks back.</p>
+                  <p className="text-muted-foreground text-body">Poke at it — the board talks back.</p>
                   <ChoiceChips options={starterPrompts(pin)} onPick={sendChat} />
                 </div>
               )}
               {messages.map((m, i) => (
                 <div key={m.id || i} className={`flex flex-col max-w-[85%] ${m.role === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'}`}>
-                  <div className={`p-4 rounded-[20px] ${m.role === 'user' ? 'bg-[#1C1917] text-white rounded-tr-[4px]' : 'bg-card border border-border text-foreground rounded-tl-[4px]'}`}>
-                    <p className="text-[15px] leading-relaxed font-sans whitespace-pre-wrap">{m.content}</p>
+                  <div className={`p-4 rounded-lg ${m.role === 'user' ? 'bg-ink-1 text-white rounded-tr-nub' : 'bg-card border border-border text-foreground rounded-tl-nub'}`}>
+                    <p className="text-body leading-relaxed font-sans whitespace-pre-wrap">{m.content}</p>
                   </div>
                 </div>
               ))}
               {isStreaming && (
                 <div className="flex flex-col max-w-[85%] mr-auto items-start">
-                  <div className="p-4 rounded-[20px] bg-card border border-border text-foreground rounded-tl-[4px]">
-                    <p className="text-[15px] leading-relaxed font-sans whitespace-pre-wrap">
+                  <div className="p-4 rounded-lg bg-card border border-border text-foreground rounded-tl-nub">
+                    <p className="text-body leading-relaxed font-sans whitespace-pre-wrap">
                       {streamContent}<span className="inline-block w-1.5 h-3.5 bg-current ml-1 animate-pulse" />
                     </p>
                   </div>
@@ -357,16 +357,16 @@ export const ExpandedPinView = ({
               {!isStreaming && messages.length > 0 && options && (
                 <ChoiceChips options={options} onPick={sendChat} className="pt-1" />
               )}
-              {error && <p className="text-center text-[#BE123C] text-sm">{error}</p>}
+              {error && <p className="text-center text-danger text-body">{error}</p>}
               <div ref={endRef} />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="p-4 bg-background border-t border-border">
+      <div className="px-4 pt-4 pb-safe bg-background border-t border-border">
         <div className="max-w-[640px] mx-auto">
-          {notice && <p className="text-center text-[#BE123C] text-xs mb-2">{notice}</p>}
+          {notice && <p className="text-center text-danger text-caption mb-2">{notice}</p>}
           <form onSubmit={handleComposer} className="flex items-center gap-2">
             <button
               type="button"
@@ -376,7 +376,7 @@ export const ExpandedPinView = ({
               title={checkMode ? 'Back to chat' : 'Add checklist items'}
               className={`w-[52px] h-[52px] shrink-0 rounded-full border flex items-center justify-center transition-colors ${
                 checkMode
-                  ? 'bg-[#10B981] border-[#10B981] text-white'
+                  ? 'bg-moss border-moss text-white'
                   : 'bg-card border-border text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -389,12 +389,12 @@ export const ExpandedPinView = ({
                 onChange={e => setInput(e.target.value)}
                 placeholder={checkMode ? 'Add a checklist item...' : 'Ask about this pin...'}
                 disabled={checkMode ? createTask.isPending : isStreaming}
-                className="w-full bg-card border border-border rounded-full py-4 pl-5 pr-14 outline-none focus:ring-2 focus:ring-[#10B981] font-sans text-[15px] placeholder:text-muted-foreground disabled:opacity-50"
+                className="w-full bg-card border border-border rounded-full py-4 pl-5 pr-14 outline-none focus:ring-2 focus:ring-ink-1 font-sans text-body-lg placeholder:text-muted-foreground disabled:opacity-50"
               />
               <button
                 type="submit"
                 disabled={!input.trim() || (checkMode ? createTask.isPending : isStreaming)}
-                className="absolute right-2 top-2 bottom-2 aspect-square bg-[#10B981] hover:bg-[#059669] text-white rounded-full flex items-center justify-center transition-colors disabled:opacity-50"
+                className="absolute right-2 top-2 bottom-2 aspect-square bg-ink-1 hover:bg-ink-2 text-on-ink rounded-full flex items-center justify-center transition-colors disabled:opacity-50"
               >
                 <Send className="w-5 h-5 ml-0.5" />
               </button>

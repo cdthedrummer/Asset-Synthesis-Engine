@@ -44,30 +44,42 @@ export const BoardItem = ({
   return (
     <div
       onClick={onClick}
-      className={`relative overflow-hidden bg-card border rounded-[24px] p-3.5 flex flex-col transition-all text-left active:scale-[0.98] cursor-pointer break-inside-avoid w-full min-w-0 ${
+      // A dropped pin is a card that has stopped floating.
+      //
+      // This used to be `opacity-70`, which dims everything inside it including
+      // the verdict stamp — and now that SKIP is warm stone rather than alarm
+      // rose, its hairline border measured 1.39:1 under that dim, i.e. gone.
+      // Removing the card's figure-ground separation instead says "set down"
+      // just as clearly (it sinks into the board ground) while every element
+      // inside stays at full contrast.
+      //
+      // The minted ring is ink, deliberately: minting fires on all four
+      // verdicts, so moss would claim "achieved" and terracotta would urge
+      // "start this" about a pin the board may have just told you to drop.
+      className={`relative overflow-hidden border rounded-card p-3.5 flex flex-col transition-all text-left active:scale-[0.98] cursor-pointer break-inside-avoid w-full min-w-0 ${
         isSkipped
-          ? 'border-border opacity-70 shadow-none hover:opacity-100'
-          : 'border-border shadow-sm hover:shadow-md'
-      } ${minted ? 'ring-2 ring-[#10B981] ring-offset-2 ring-offset-background' : ''}`}
+          ? 'bg-paper border-rule shadow-none hover:bg-card hover:shadow-sm'
+          : 'bg-card border-rule shadow-sm hover:shadow-md'
+      } ${minted ? 'ring-2 ring-ink-1/25 ring-offset-2 ring-offset-paper' : ''}`}
     >
       <div className="flex justify-between items-start mb-3 gap-2">
         <div className="min-w-0 shrink">
           <VerdictStamp verdict={pin.verdict} onClick={onVerdictClick} />
         </div>
         <div className="flex flex-col items-end">
-          <span className="text-[9px] font-mono font-bold text-muted-foreground uppercase mt-1 shrink-0">{recency}</span>
+          <span className="text-kicker-sm font-mono font-bold text-muted-foreground uppercase mt-1 shrink-0">{recency}</span>
           {pin.verifyYourself && (
-             <span className="text-[8px] font-mono font-bold text-[#D97706] uppercase mt-1 shrink-0 bg-[#FFFBEB] px-1.5 py-0.5 rounded-full">Verify</span>
+             <span className="text-kicker-sm font-mono font-bold text-ochre uppercase mt-1 shrink-0 bg-ochre-tint px-1.5 py-0.5 rounded-full">Verify</span>
           )}
         </div>
       </div>
-      <Visualizer kind={pin.kind} data={pin.vizData} />
+      <Visualizer kind={pin.kind} data={pin.vizData} muted={isSkipped} />
 
       {/* Ticking a checkbox has to change the board, not just a drawer. No text. */}
       {tasks.length > 0 && (
-        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[var(--color-divider)]">
+        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-rule-soft">
           <div
-            className="h-full bg-[#10B981] transition-[width] duration-500"
+            className="h-full bg-moss transition-[width] duration-500"
             style={{ width: `${Math.round(ratio * 100)}%` }}
           />
         </div>

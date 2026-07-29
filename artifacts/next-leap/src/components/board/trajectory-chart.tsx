@@ -35,20 +35,25 @@ export const TrajectoryChart = ({ series, width = 350, height = 100, fillId }: {
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
       <defs>
+        {/* The fill opacity is baked into the token, not set here. Moss is ~3.6x
+            darker than the emerald it replaced, so the old 0.15 rendered as a
+            grey-green smear rather than a tint. */}
         <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#10B981" stopOpacity="0.15" />
-          <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
+          <stop offset="0%" stopColor="var(--chart-fill-top)" />
+          <stop offset="100%" stopColor="var(--chart-fill-bottom)" />
         </linearGradient>
       </defs>
       <path d={geo.fillPath} fill={`url(#${fillId})`} />
-      <path d={geo.solidPath} stroke="#10B981" strokeWidth="3" fill="none" strokeLinecap="round" />
-      <path d={geo.dashedPath} stroke="#10B981" strokeWidth="3" strokeDasharray="5,5" fill="none" strokeLinecap="round" />
+      <path d={geo.solidPath} stroke="var(--moss)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      <path d={geo.dashedPath} stroke="var(--moss)" strokeWidth="2.5" strokeDasharray="5,5" fill="none" strokeLinecap="round" />
       {[...dotIdxs].sort((a, b) => a - b).map((i) => {
         const p = geo.points[i];
         return i === last ? (
-          <circle key={i} cx={p.x} cy={p.y} r="5" fill="#10B981" />
+          <circle key={i} cx={p.x} cy={p.y} r="5" fill="var(--moss)" />
         ) : (
-          <circle key={i} cx={p.x} cy={p.y} r="4.5" fill="white" stroke="#10B981" strokeWidth="2.5" />
+          // Not hardcoded white: the expanded view grounds this chart on paper,
+          // where a white dot would halo.
+          <circle key={i} cx={p.x} cy={p.y} r="4.5" fill="var(--surface)" stroke="var(--moss)" strokeWidth="2.5" />
         );
       })}
     </svg>

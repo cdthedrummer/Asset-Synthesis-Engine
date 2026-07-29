@@ -1,49 +1,64 @@
 import React from 'react';
 
-const STYLE_GUIDE = {
-  colors: {
-    canvas: '#F9F8F6',
-    surface: '#FFFFFF',
-    text: {
-      primary: '#1C1917',
-      secondary: '#57534E',
-      tertiary: '#A8A29E',
-    },
-    border: '#E7E5E4',
-    divider: '#F5F5F4',
-    verdict: {
-      "START": { text: '#15803D', bg: '#F0FDF4', border: '#BBF7D0' },
-      "SCHEDULE": { text: '#B45309', bg: '#FFFBEB', border: '#FDE68A' },
-      "GET HELP": { text: '#0369A1', bg: '#F0F9FF', border: '#BAE6FD' },
-      "SKIP FOR NOW": { text: '#BE123C', bg: '#FFF1F2', border: '#FECDD3' }
-    }
+export type VerdictLabel = 'START' | 'SCHEDULE' | 'GET HELP' | 'SKIP FOR NOW';
+
+/**
+ * Verdict colours as token *pointers*, not values.
+ *
+ * This replaces a `STYLE_GUIDE` object that had grown into a full second design
+ * system (canvas, surface, three ink levels, border, divider, radii, shadows)
+ * applied through inline `style={{}}`, where Tailwind could not see it and
+ * nothing kept it in sync with index.css.
+ *
+ * An export is still needed — the stamp computes three colours from two
+ * booleans, which cannot be expressed as static classes without a twelve-branch
+ * lookup — but it now holds `var()` references, so CSS remains the only source
+ * of truth.
+ */
+export const VERDICT_TOKENS = {
+  START: {
+    fill: 'var(--verdict-start-fill)',
+    ink: 'var(--verdict-start-ink)',
+    edge: 'var(--verdict-start-edge)',
   },
-  radii: {
-    card: '24px',
-    pill: '999px'
+  SCHEDULE: {
+    fill: 'var(--verdict-schedule-fill)',
+    ink: 'var(--verdict-schedule-ink)',
+    edge: 'var(--verdict-schedule-edge)',
   },
-  shadows: {
-    card: '0 8px 24px rgba(28, 25, 23, 0.04)',
-    float: '0 12px 32px rgba(28, 25, 23, 0.08)',
-    sm: '0 2px 8px rgba(28, 25, 23, 0.03)'
-  }
+  'GET HELP': {
+    fill: 'var(--verdict-help-fill)',
+    ink: 'var(--verdict-help-ink)',
+    edge: 'var(--verdict-help-edge)',
+  },
+  'SKIP FOR NOW': {
+    fill: 'var(--verdict-skip-fill)',
+    ink: 'var(--verdict-skip-ink)',
+    edge: 'var(--verdict-skip-edge)',
+  },
+} as const satisfies Record<VerdictLabel, { fill: string; ink: string; edge: string }>;
+
+export const VERDICT_EXPLANATIONS: Record<VerdictLabel, string> = {
+  START: 'Do it in the next 48 hours.',
+  SCHEDULE: 'Real, but it has a trigger date.',
+  'SKIP FOR NOW': 'Costs more than it moves.',
+  'GET HELP': 'One conversation unblocks it.',
 };
 
-export const VERDICT_EXPLANATIONS: Record<string, string> = {
-  "START": "Do it in the next 48 hours.",
-  "SCHEDULE": "Real, but it has a trigger date.",
-  "SKIP FOR NOW": "Costs more than it moves.",
-  "GET HELP": "One conversation unblocks it."
-};
+export const VERDICT_ORDER: VerdictLabel[] = ['START', 'SCHEDULE', 'GET HELP', 'SKIP FOR NOW'];
 
 /** Map raw verdict values from the API (start | schedule | skip | gethelp) to display labels. */
-export function verdictLabel(verdict: string): keyof typeof STYLE_GUIDE.colors.verdict {
+export function verdictLabel(verdict: string): VerdictLabel {
   switch (verdict.toLowerCase().replace(/[\s_-]/g, '')) {
-    case 'schedule': return 'SCHEDULE';
+    case 'schedule':
+      return 'SCHEDULE';
     case 'skip':
-    case 'skipfornow': return 'SKIP FOR NOW';
-    case 'gethelp': return 'GET HELP';
-    default: return 'START';
+    case 'skipfornow':
+      return 'SKIP FOR NOW';
+    case 'gethelp':
+      return 'GET HELP';
+    default:
+      return 'START';
   }
 }
 
@@ -56,31 +71,53 @@ export function verdictLabel(verdict: string): keyof typeof STYLE_GUIDE.colors.v
  * permission-to-drop reads as a decision rather than an alarm.
  */
 export const VERDICT_WEIGHT: Record<string, number> = {
-  "START": 3,
-  "GET HELP": 2,
-  "SCHEDULE": 1,
-  "SKIP FOR NOW": 0,
+  START: 3,
+  'GET HELP': 2,
+  SCHEDULE: 1,
+  'SKIP FOR NOW': 0,
 };
 
-export const VerdictStamp = ({ verdict, onClick, className = "" }: { verdict: string, onClick?: (e: React.MouseEvent, v: string) => void, className?: string }) => {
+export const VerdictStamp = ({
+  verdict,
+  onClick,
+  className = '',
+}: {
+  verdict: string;
+  onClick?: (e: React.MouseEvent, v: string) => void;
+  className?: string;
+}) => {
   const normVerdict = verdictLabel(verdict);
-  const style = STYLE_GUIDE.colors.verdict[normVerdict];
+  const token = VERDICT_TOKENS[normVerdict];
   const isStart = normVerdict === 'START';
-  const isSkip = normVerdict === 'SKIP FOR NOW';
+
+  const pill = (
+    <span
+      className={`inline-flex w-auto items-center rounded-pill border font-mono uppercase font-bold relative z-10 shrink-0 whitespace-nowrap ${
+        // Size delta is part of "verdicts are not peers". The old non-START
+        // size was 8px, which is unreadable on a phone; 9px against START's
+        // 10px keeps the hierarchy and clears the legibility floor.
+        isStart ? 'px-2.5 py-1.5 text-kicker' : 'px-1.5 py-1 text-kicker-sm'
+      } ${onClick ? 'active:scale-95 transition-transform' : ''} ${className}`}
+      style={{ backgroundColor: token.fill, color: token.ink, borderColor: token.edge }}
+    >
+      {normVerdict}
+    </span>
+  );
+
+  if (!onClick) return pill;
+
+  // The pill has to stay visually tiny — the triage hierarchy depends on START
+  // being the only loud thing — but it is the ONLY entry point to the verdict
+  // popover, i.e. the only door to what the board means. So the hit box grows
+  // with padding and the layout is pulled back with a matching negative margin:
+  // a 44px target, zero visual change.
   return (
     <button
-      onClick={(e) => onClick?.(e, normVerdict)}
-      className={`inline-flex w-auto items-center rounded-[var(--radius-pill)] border font-mono uppercase font-bold relative z-10 shrink-0 whitespace-nowrap ${
-        isStart ? 'px-2.5 py-1.5 text-[9px] tracking-[0.08em]' : 'px-1.5 py-1 text-[8px] tracking-[0.05em]'
-      } ${onClick ? 'active:scale-95 transition-transform' : ''} ${className}`}
-      style={{
-        backgroundColor: isStart ? '#10B981' : isSkip ? 'transparent' : style.bg,
-        color: isStart ? '#FFFFFF' : style.text,
-        borderColor: isSkip ? style.border : isStart ? '#10B981' : style.border,
-        borderRadius: STYLE_GUIDE.radii.pill
-      }}
+      onClick={e => onClick(e, normVerdict)}
+      aria-label={`${normVerdict} — ${VERDICT_EXPLANATIONS[normVerdict]}`}
+      className="inline-flex items-center px-2 -mx-2 py-3 -my-3"
     >
-      <span>{normVerdict}</span>
+      {pill}
     </button>
   );
 };

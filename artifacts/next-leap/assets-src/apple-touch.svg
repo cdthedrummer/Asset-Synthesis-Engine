@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <!-- Source for apple-touch-icon.png (180x180).
+       MANDATORY, not optional: iOS ignores manifest icons entirely when picking
+       a home-screen icon, and with no apple-touch-icon it renders a screenshot
+       of the page instead.
+       iOS applies its own squircle, so this fills more of the frame than the
+       maskable version does (16.7% margin) and is not pre-rounded.
+       Content x 30..150 (centre 90), y 39..141 (centre 90). -->
+  <rect width="180" height="180" fill="#FBF8F3"/>
+  <rect x="30" y="39"  width="120" height="32" rx="16" fill="#C4451C"/>
+  <rect x="30" y="84"  width="84"  height="24" rx="12" fill="#1C1917"/>
+  <rect x="30" y="121" width="52"  height="20" rx="10" fill="#A8A29E"/>
+</svg>

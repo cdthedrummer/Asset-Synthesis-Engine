@@ -15,15 +15,15 @@ import { BoardItem } from './pin-item';
 
 /** Pin-shaped, and wordless — the near-wordless rule applies to placeholders. */
 const MintingCard = () => (
-  <div className="bg-card border border-border rounded-[24px] p-3.5 shadow-sm break-inside-avoid w-full animate-pulse">
+  <div className="bg-card border border-border rounded-xl p-3.5 shadow-sm break-inside-avoid w-full animate-pulse">
     <div className="flex justify-between items-start mb-4 gap-2">
-      <div className="h-4 w-16 rounded-full bg-[var(--color-divider)]" />
-      <div className="h-3 w-10 rounded-full bg-[var(--color-divider)]" />
+      <div className="h-4 w-16 rounded-full bg-sunken" />
+      <div className="h-3 w-10 rounded-full bg-sunken" />
     </div>
     <div className="space-y-2.5">
-      <div className="h-3 w-full rounded-full bg-[var(--color-divider)]" />
-      <div className="h-3 w-4/5 rounded-full bg-[var(--color-divider)]" />
-      <div className="h-3 w-2/3 rounded-full bg-[var(--color-divider)]" />
+      <div className="h-3 w-full rounded-full bg-sunken" />
+      <div className="h-3 w-4/5 rounded-full bg-sunken" />
+      <div className="h-3 w-2/3 rounded-full bg-sunken" />
     </div>
   </div>
 );
@@ -61,13 +61,12 @@ export const BoardGrid = ({
   const tasksFor = (pinId: number) => tasks.filter(t => t.pinId === pinId);
 
   return (
-    <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
+    <div className="columns-1 md:columns-2 lg:columns-3 gap-4 [&>*]:mb-4">
       <AnimatePresence initial={false}>
         {Array.from({ length: mintingCount }).map((_, i) => (
           <motion.div
             key={`minting-${i}`}
-            layout
-            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.96 }}
+                initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 260, damping: 26 }}
@@ -81,8 +80,7 @@ export const BoardGrid = ({
           <motion.div
             key={pin.id}
             id={`pin-${pin.id}`}
-            layout
-            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.96 }}
+                initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 260, damping: 26 }}

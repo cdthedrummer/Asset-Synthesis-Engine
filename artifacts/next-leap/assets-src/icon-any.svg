@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="512" height="512">
+  <!-- Source for icon-192.png / icon-512.png (manifest purpose:"any").
+       No rounding: platforms that use "any" icons supply their own shape.
+       No dark variant: a PNG cannot adapt. -->
+  <rect width="48" height="48" fill="#FBF8F3"/>
+  <rect x="9" y="9"  width="30" height="8" rx="4"   fill="#C4451C"/>
+  <rect x="9" y="22" width="21" height="6" rx="3"   fill="#1C1917"/>
+  <rect x="9" y="33" width="13" height="5" rx="2.5" fill="#A8A29E"/>
+</svg>

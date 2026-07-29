@@ -45,7 +45,7 @@ export const CheckinOverlay = ({ token, pins, onClose }: { token: string, pins: 
     <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
       <div className="max-w-xl mx-auto px-6 pt-10 pb-16">
         <div className="flex items-center justify-between mb-10">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Check-in</span>
+          <span className="font-mono text-kicker-lg uppercase tracking-widest text-muted-foreground">Check-in</span>
           <button onClick={onClose} aria-label="Close" className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors">
             <X className="w-5 h-5" />
           </button>
@@ -53,11 +53,11 @@ export const CheckinOverlay = ({ token, pins, onClose }: { token: string, pins: 
 
         {!result ? (
           <>
-            <h2 className="text-[26px] font-bold font-sans text-foreground leading-tight">What happened since last time?</h2>
-            <p className="text-[14px] text-muted-foreground mt-2 mb-6">Plain words. What got done, what didn't, what surprised you. The board re-scores itself.</p>
+            <h2 className="text-heading font-bold font-sans text-foreground leading-tight">What happened since last time?</h2>
+            <p className="text-body text-muted-foreground mt-2 mb-6">Plain words. What got done, what didn't, what surprised you. The board re-scores itself.</p>
 
             {isDemo && (
-              <div className="mb-4 text-[13px] font-mono uppercase tracking-wide text-muted-foreground border border-border rounded-xl px-4 py-3">
+              <div className="mb-4 text-caption font-mono uppercase tracking-wide text-muted-foreground border border-border rounded-xl px-4 py-3">
                 This board is a demo — start your own from the front door to check in.
               </div>
             )}
@@ -67,11 +67,11 @@ export const CheckinOverlay = ({ token, pins, onClose }: { token: string, pins: 
               onChange={e => setNote(e.target.value)}
               rows={5}
               placeholder="I texted nine people, six booked. Never called about the kitchen…"
-              className="w-full bg-surface border border-border rounded-2xl p-4 text-[15px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-foreground/30 resize-none"
+              className="w-full bg-surface border border-border rounded-md p-4 text-body-lg text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-foreground/30 resize-none"
             />
 
             {serverError && (
-              <div className="mt-3 text-[13px] text-rose-600">{serverError}</div>
+              <div className="mt-3 text-caption text-rose-600">{serverError}</div>
             )}
 
             <button
@@ -84,23 +84,23 @@ export const CheckinOverlay = ({ token, pins, onClose }: { token: string, pins: 
           </>
         ) : (
           <>
-            <p className="text-[18px] leading-relaxed text-foreground font-medium">{result.checkin.summary}</p>
+            <p className="text-body-lg leading-relaxed text-foreground font-medium">{result.checkin.summary}</p>
 
             <div className="mt-8">
-              <div className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground mb-3">Verdicts moved</div>
+              <div className="font-mono text-kicker-lg uppercase tracking-widest text-muted-foreground mb-3">Verdicts moved</div>
               {changes.length === 0 ? (
-                <div className="text-[13px] font-mono uppercase tracking-wide text-muted-foreground">No verdicts moved this time.</div>
+                <div className="text-caption font-mono uppercase tracking-wide text-muted-foreground">No verdicts moved this time.</div>
               ) : (
                 <div className="space-y-3">
                   {changes.map((c, i) => (
-                    <div key={i} className="bg-surface border border-border rounded-2xl p-4">
-                      <div className="text-[14px] font-bold font-sans text-foreground mb-2">{pinTitle(c.pinId)}</div>
+                    <div key={i} className="bg-surface border border-rule rounded-md p-4">
+                      <div className="text-body font-bold font-sans text-foreground mb-2">{pinTitle(c.pinId)}</div>
                       <div className="flex items-center gap-2">
                         <span className="opacity-50"><VerdictStamp verdict={c.from} /></span>
                         <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />
                         <VerdictStamp verdict={c.to} />
                       </div>
-                      {c.why && <div className="text-[13px] text-muted-foreground mt-2">{c.why}</div>}
+                      {c.why && <div className="text-caption text-muted-foreground mt-2">{c.why}</div>}
                     </div>
                   ))}
                 </div>
@@ -109,8 +109,8 @@ export const CheckinOverlay = ({ token, pins, onClose }: { token: string, pins: 
 
             {result.checkin.dodged && (
               <div className="mt-6 border-l-2 border-rose-400 bg-surface rounded-r-2xl p-4">
-                <div className="font-mono text-[11px] uppercase tracking-widest text-rose-500 mb-1.5">The dodge</div>
-                <div className="text-[15px] text-foreground leading-relaxed">{result.checkin.dodged}</div>
+                <div className="font-mono text-kicker-lg uppercase tracking-widest text-rose-500 mb-1.5">The dodge</div>
+                <div className="text-body text-foreground leading-relaxed">{result.checkin.dodged}</div>
               </div>
             )}
 
