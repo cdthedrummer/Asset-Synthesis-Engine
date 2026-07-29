@@ -8,6 +8,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useLeapChat } from './use-leap-chat';
 import { ChoiceChips } from './choice-chips';
+import { useDockHeight } from './use-dock-height';
 import { ComposerInput } from './composer-input';
 
 /**
@@ -41,6 +42,9 @@ export const BoardChat = ({
 }) => {
   const [mode, setMode] = React.useState<'ask' | 'add'>('ask');
   const [open, setOpen] = React.useState(false);
+  const barRef = React.useRef<HTMLDivElement>(null);
+  useDockHeight(barRef);
+
   const [input, setInput] = React.useState('');
   const [addError, setAddError] = React.useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -93,8 +97,8 @@ export const BoardChat = ({
       {/* The thread, opened on demand so the board stays the main surface. */}
       {open && hasThread && (
         <div className="fixed inset-0 z-[60] bg-background flex flex-col">
-          <div className="px-4 pt-6 pb-4 border-b border-border flex items-center justify-between">
-            <div className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground font-bold">
+          <div className="px-4 pt-safe pb-4 border-b border-border flex items-center justify-between">
+            <div className="font-mono text-kicker-lg uppercase tracking-widest text-muted-foreground font-bold">
               This board
             </div>
             <button
@@ -113,20 +117,20 @@ export const BoardChat = ({
                   key={m.id}
                   className={
                     m.role === 'user'
-                      ? 'ml-auto max-w-[85%] bg-foreground text-background rounded-[20px] rounded-br-md px-4 py-3 text-[14px] leading-relaxed'
-                      : 'max-w-[95%] text-[15px] leading-relaxed text-foreground whitespace-pre-wrap'
+                      ? 'ml-auto max-w-[85%] bg-foreground text-background rounded-lg rounded-br-nub px-4 py-3 text-body leading-relaxed'
+                      : 'max-w-[95%] text-body leading-relaxed text-foreground whitespace-pre-wrap'
                   }
                 >
                   {m.content}
                 </div>
               ))}
               {streamContent && (
-                <div className="max-w-[95%] text-[15px] leading-relaxed text-foreground whitespace-pre-wrap">
+                <div className="max-w-[95%] text-body leading-relaxed text-foreground whitespace-pre-wrap">
                   {streamContent}
                 </div>
               )}
               {!!error && (
-                <div className="font-mono text-[10px] uppercase tracking-widest text-[#BE123C] font-bold">
+                <div className="font-mono text-kicker uppercase tracking-widest text-danger font-bold">
                   {String(error)}
                 </div>
               )}
@@ -139,11 +143,17 @@ export const BoardChat = ({
         </div>
       )}
 
-      {/* The persistent bar. */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 bg-gradient-to-t from-background via-background to-transparent z-40 pointer-events-none">
+      {/* The persistent bar. Publishes --dock-h like the interview dock does, so
+          the board pads by its real height instead of a guessed 8rem — the
+          starters row makes this bar tall enough that guessing hid pins. */}
+      <div
+        ref={barRef}
+        className="fixed bottom-0 left-0 right-0 px-4 pt-4 pb-safe bg-gradient-to-t from-background via-background to-transparent z-40 pointer-events-none"
+        style={{ transform: 'translateY(calc(-1 * var(--kb-h, 0px)))' }}
+      >
         <div className="max-w-[520px] mx-auto pointer-events-auto space-y-2">
           {addError && (
-            <p className="text-center text-[11px] text-[#BE123C] bg-background/90 rounded-full px-3 py-1">
+            <p className="text-center text-caption text-danger bg-background/90 rounded-full px-3 py-1">
               {addError}
             </p>
           )}
@@ -192,13 +202,15 @@ export const BoardChat = ({
             )}
           </div>
 
-          {/* Tap starters make the board-editing protocol discoverable at all. */}
+          {/* Tap starters make the board-editing protocol discoverable at all.
+              One scrolling row, never wrapped: three wrapped pills on a 393px
+              phone made this bar ~250px tall and buried the board behind it. */}
           {mode === 'ask' && !hasThread && (
             <ChoiceChips
               options={STARTERS}
               onPick={ask}
               disabled={isStreaming}
-              className="justify-center"
+              className="flex-nowrap overflow-x-auto scrollbar-none -mx-4 px-4"
             />
           )}
         </div>

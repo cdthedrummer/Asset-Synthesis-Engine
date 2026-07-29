@@ -16,6 +16,10 @@ import { InterviewDock } from '@/components/board/interview-dock';
 import { CheckinOverlay } from '@/components/board/checkin-overlay';
 import { RevealOverlay, hasSeenReveal, markRevealSeen } from '@/components/board/reveal-overlay';
 import { useInterview } from '@/components/board/use-interview';
+import { AppBar } from '@/components/chrome/app-bar';
+import { VerdictLegend, hasSeenKey, markKeySeen } from '@/components/board/verdict-legend';
+import { useScrolledPast } from '@/hooks/use-scrolled-past';
+import { DeadEnd } from '@/pages/not-found';
 
 function pinIdFromUrl(): number | null {
   const raw = new URLSearchParams(window.location.search).get('pin');
@@ -40,8 +44,18 @@ export default function Board() {
   const [showCheckin, setShowCheckin] = React.useState(false);
   const [showReveal, setShowReveal] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
+  const [showKey, setShowKey] = React.useState(false);
+
+  // The bar takes over the title once the real headline scrolls away.
+  const [sentinel, scrolledPast] = useScrolledPast();
 
   const interview = useInterview({ token: token!, boardState });
+
+  // Opening the key counts as having seen it, however it was opened.
+  const onKeyOpenChange = React.useCallback((open: boolean) => {
+    setShowKey(open);
+    if (open) markKeySeen();
+  }, []);
 
   // Keep ?pin= in the address bar matching the open pin, so a copied link
   // lands on this exact view (replaceState — no history spam).
@@ -84,12 +98,32 @@ export default function Board() {
     if (!hasSeenReveal(board.token)) setShowReveal(true);
   }, [board, interview]);
 
+  // Teach the notation once per device, at the moment it starts mattering: the
+  // reveal has just shown drops/bet/moves and the stamps are about to be met in
+  // the wild. Not a coach — a map key, offered once.
+  const revealClosed = React.useCallback(() => {
+    setShowReveal(false);
+    if (!hasSeenKey()) {
+      markKeySeen();
+      setShowKey(true);
+    }
+  }, []);
+
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading board...</div>;
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center">
+        <span className="kicker text-ink-3 animate-pulse">Loading board</span>
+      </div>
+    );
   }
 
   if (!boardState || !board) {
-    return <div className="min-h-screen flex items-center justify-center">Board not found.</div>;
+    return (
+      <DeadEnd kicker="Board not found" headline="That board isn't here anymore.">
+        Links don't expire on their own — check for a truncated paste, or search your browser
+        history for the goal you typed.
+      </DeadEnd>
+    );
   }
 
   const { pins, moves, progress } = boardState;
@@ -119,37 +153,45 @@ export default function Board() {
 
   return (
     <div className="min-h-[100dvh] bg-background">
-      <div className="p-4 md:p-6 pb-2 flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-            {board.name ? `${board.name}'s board` : 'Your board'}
-          </div>
-          <h1 className="text-[24px] md:text-[28px] font-bold font-sans text-foreground leading-tight mt-1 line-clamp-2">
-            {board.goalText}
-          </h1>
-        </div>
-        <div className="shrink-0 flex items-center gap-2">
-          {/* No accounts, so the link is the account. Always reachable. */}
-          <button
-            onClick={copyLink}
-            aria-label="Copy the board link"
-            className="w-10 h-10 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-foreground/40 flex items-center justify-center transition-colors"
-          >
-            {copied ? <Check className="w-4 h-4 text-[#10B981]" /> : <Copy className="w-4 h-4" />}
-          </button>
-          {!isInterview && (
+      <AppBar
+        title={board.goalText}
+        condensed={scrolledPast}
+        actions={
+          <>
+            <VerdictLegend open={showKey} onOpenChange={onKeyOpenChange} />
+            {/* No accounts, so the link is the account. Always reachable. */}
             <button
-              onClick={() => setShowCheckin(true)}
-              className="font-mono text-[11px] uppercase tracking-widest border border-border rounded-full px-4 py-2.5 text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
+              onClick={copyLink}
+              aria-label="Copy the board link"
+              className="w-11 h-11 rounded-full border border-rule text-ink-3 hover:text-ink-1 hover:border-ink-1/40 flex items-center justify-center transition-colors shrink-0"
             >
-              Check in
+              {copied ? <Check className="w-4 h-4 text-moss" /> : <Copy className="w-4 h-4" />}
             </button>
-          )}
+            {!isInterview && (
+              <button
+                onClick={() => setShowCheckin(true)}
+                className="kicker-lg border border-rule rounded-pill px-4 py-3 text-ink-3 hover:text-ink-1 hover:border-ink-1/40 transition-colors shrink-0"
+              >
+                Check in
+              </button>
+            )}
+          </>
+        }
+      />
+
+      <div className="max-w-7xl mx-auto px-4 md:px-6 pt-5">
+        <div className="kicker text-ink-3">
+          {board.name ? `${board.name}'s board` : 'Your board'}
         </div>
+        <h1 className="text-heading md:text-heading-lg text-ink-1 mt-1.5 line-clamp-2">
+          {board.goalText}
+        </h1>
       </div>
+      {/* Sentinel: once this passes under the bar, the bar takes over the title. */}
+      <div ref={sentinel} aria-hidden="true" className="h-px" />
 
       <div
-        className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto"
+        className="px-4 md:px-6 pt-6 space-y-6 max-w-7xl mx-auto"
         style={{ paddingBottom: 'calc(var(--dock-h, 8rem) + 3rem)' }}
       >
         <StatChips chips={board.statChips} />
@@ -176,7 +218,7 @@ export default function Board() {
 
         {/* Never fake pins: if the opening turn failed, say so plainly. */}
         {isInterview && sortedPins.length === 0 && interview.mintingCount === 0 && (
-          <p className="text-[14px] text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             Nothing up here yet. Answer that and it starts filling.
           </p>
         )}
@@ -251,7 +293,7 @@ export default function Board() {
           token={board.token}
           onOpenPin={pinId => { setShowReveal(false); setActivePinId(pinId); }}
           onOpenMoves={() => { setShowReveal(false); setShowMoves(true); }}
-          onClose={() => { markRevealSeen(board.token); setShowReveal(false); }}
+          onClose={() => { markRevealSeen(board.token); revealClosed(); }}
         />
       )}
     </div>

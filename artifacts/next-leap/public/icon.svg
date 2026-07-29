@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Shortlist">
+  <!-- Shortlist. Three bars, descending in width AND height: the list gets
+       shorter, and the one that survives is the terracotta one at the top.
+       Two axes of descent is what keeps this from reading as a hamburger,
+       which is three EQUAL bars. The accent is on the largest shape on
+       purpose — on the smallest it would disappear at favicon size.
+       Bar 3 is a solid tertiary grey rather than a low alpha, because a
+       28%-alpha 1.6px bar does not survive 16px rasterisation. -->
+  <style>
+    .ground { fill: #FBF8F3 }
+    .ink    { fill: #1C1917 }
+    .tail   { fill: #A8A29E }
+    @media (prefers-color-scheme: dark) {
+      .ground { fill: #1C1917 }
+      .ink    { fill: #FBF8F3 }
+      .tail   { fill: #78716C }
+    }
+  </style>
+  <rect class="ground" width="48" height="48" rx="10"/>
+  <rect x="9" y="9"  width="30" height="8" rx="4"   fill="#C4451C"/>
+  <rect class="ink"  x="9" y="22" width="21" height="6" rx="3"/>
+  <rect class="tail" x="9" y="33" width="13" height="5" rx="2.5"/>
+</svg>

@@ -37,7 +37,7 @@ export const BetCard = ({
 
   return (
     <div
-      className={`relative overflow-hidden bg-card border border-border rounded-[24px] p-5 shadow-sm ${className}`}
+      className={`relative overflow-hidden bg-card border border-border rounded-xl p-5 shadow-sm ${className}`}
     >
       {/* The pin it's about, dimmed underneath — you can see what's being called. */}
       {pin && (
@@ -50,15 +50,15 @@ export const BetCard = ({
       )}
 
       <div className="relative">
-        <div className="font-mono text-[10px] uppercase tracking-widest text-[#BE123C] font-bold mb-2">
+        <div className="font-mono text-kicker uppercase tracking-widest text-danger font-bold mb-2">
           The bet
         </div>
-        <p className="text-[16px] leading-relaxed text-foreground font-medium">{bet.text}</p>
+        <p className="text-body-lg leading-relaxed text-foreground font-medium">{bet.text}</p>
 
         {canOpen && (
           <button
             onClick={() => onOpenPin!(pinId!)}
-            className="mt-4 px-4 py-2 rounded-full border border-border bg-card text-[11px] font-mono font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground hover:border-foreground/40 active:scale-95 transition-all"
+            className="mt-4 px-4 py-2 rounded-full border border-border bg-card text-kicker-lg font-mono font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground hover:border-foreground/40 active:scale-95 transition-all"
           >
             Prove me wrong
           </button>

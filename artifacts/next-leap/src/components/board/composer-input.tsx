@@ -87,7 +87,7 @@ export const ComposerInput = ({
           }
           disabled={busy}
           autoFocus={autoFocus}
-          className={`w-full resize-none bg-card shadow-lg border border-border rounded-[24px] py-3.5 pl-5 outline-none focus:ring-2 focus:ring-[#10B981] font-sans text-[15px] placeholder:text-muted-foreground disabled:opacity-60 ${
+          className={`w-full resize-none bg-card shadow-lg border border-border rounded-xl py-3.5 pl-5 outline-none focus:ring-2 focus:ring-ink-1/20 focus:border-ink-1/40 font-sans text-body-lg placeholder:text-muted-foreground disabled:opacity-60 ${
             showMic ? 'pr-24' : 'pr-14'
           }`}
         />
@@ -101,7 +101,7 @@ export const ComposerInput = ({
               aria-label={recording ? 'Stop recording' : 'Answer out loud'}
               className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-40 ${
                 recording
-                  ? 'bg-[#BE123C] text-white'
+                  ? 'bg-danger text-white'
                   : 'border border-border bg-card text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -120,12 +120,12 @@ export const ComposerInput = ({
       </form>
 
       {recording && (
-        <div className="mt-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-[#BE123C] font-bold">
+        <div className="mt-2 flex items-center gap-2 font-mono text-kicker uppercase tracking-widest text-danger font-bold">
           <span className="flex items-end gap-[2px] h-3">
             {[0, 1, 2].map(i => (
               <span
                 key={i}
-                className="w-[3px] bg-[#BE123C] animate-pulse rounded-full"
+                className="w-[3px] bg-danger animate-pulse rounded-full"
                 style={{ height: `${6 + i * 3}px`, animationDelay: `${i * 120}ms` }}
               />
             ))}
@@ -135,7 +135,7 @@ export const ComposerInput = ({
       )}
 
       {voice.message && !recording && (
-        <div className="mt-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+        <div className="mt-2 font-mono text-kicker uppercase tracking-widest text-muted-foreground font-bold">
           {voice.message}
         </div>
       )}

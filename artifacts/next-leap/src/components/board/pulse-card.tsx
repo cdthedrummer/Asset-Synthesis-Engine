@@ -16,13 +16,20 @@ import { formatRecency } from './pin-item';
  * "a number, and three things, some of them finished."
  */
 
-/** One accent, no chart junk. Steps up with the week's real activity. */
+/**
+ * One accent, no chart junk. Steps up with the week's real activity.
+ *
+ * Step 0 is `sunken`, not `paper`: the card itself is white, so a paper-coloured
+ * empty square would be nearly invisible on it. Step 1 is `moss-1` rather than a
+ * pale wash so "one action this week" stays visibly GREEN — otherwise it reads
+ * as the loading skeleton, which is the most-seen grey on the board.
+ */
 function weekTone(actions: number): string {
-  if (actions === 0) return 'bg-canvas border border-[#E7E5E4]';
-  if (actions === 1) return 'bg-[#ECFDF5]';
-  if (actions <= 3) return 'bg-[#A7F3D0]';
-  if (actions <= 6) return 'bg-[#34D399]';
-  return 'bg-[#10B981]';
+  if (actions === 0) return 'bg-sunken';
+  if (actions === 1) return 'bg-moss-1';
+  if (actions <= 3) return 'bg-moss-2';
+  if (actions <= 6) return 'bg-moss-3';
+  return 'bg-moss';
 }
 
 const CountUp = ({ value }: { value: number }) => {
@@ -33,7 +40,7 @@ const CountUp = ({ value }: { value: number }) => {
       initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-      className="inline-block font-sans text-[44px] font-bold leading-none tracking-tight text-foreground"
+      className="inline-block font-sans text-metric font-bold leading-none tracking-tight text-foreground"
     >
       {value}
     </motion.span>
@@ -53,7 +60,7 @@ export const CycleDots = ({
     !!progress.cycle.staleAt && new Date(progress.cycle.staleAt).getTime() < Date.now();
   const dots: React.ReactNode[] = [];
   for (let i = 0; i < done; i++)
-    dots.push(<span key={`d${i}`} className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />);
+    dots.push(<span key={`d${i}`} className="w-2.5 h-2.5 rounded-full bg-moss" />);
   for (let i = 0; i < dropped; i++)
     dots.push(
       <span key={`s${i}`} className="relative w-2.5 h-2.5 rounded-full bg-border">
@@ -64,7 +71,7 @@ export const CycleDots = ({
     dots.push(
       <span
         key={`o${i}`}
-        className={`w-2.5 h-2.5 rounded-full border-2 ${stale ? 'border-[#D97706]' : 'border-border'}`}
+        className={`w-2.5 h-2.5 rounded-full border-2 ${stale ? 'border-ochre' : 'border-border'}`}
       />,
     );
   if (dots.length === 0) return null;
@@ -90,7 +97,7 @@ export const PulseCard = ({
   return (
     <button
       onClick={onClick}
-      className="w-full text-left bg-card border border-border rounded-[24px] p-5 shadow-sm active:scale-[0.98] transition-transform flex items-center gap-5 min-w-0"
+      className="w-full text-left bg-card border border-border rounded-xl p-5 shadow-sm active:scale-[0.98] transition-transform flex items-center gap-5 min-w-0"
     >
       <div className="shrink-0">
         <CountUp value={progress.done} />
@@ -102,11 +109,11 @@ export const PulseCard = ({
           {progress.weeks.map(week => (
             <div
               key={week.start}
-              className={`flex-1 max-w-[26px] aspect-square rounded-[6px] ${weekTone(week.actions)}`}
+              className={`flex-1 max-w-[26px] aspect-square rounded-xs ${weekTone(week.actions)}`}
             />
           ))}
         </div>
-        <div className="mt-2 text-right font-mono text-[9px] uppercase tracking-widest text-muted-foreground font-bold truncate">
+        <div className="mt-2 text-right font-mono text-kicker-sm uppercase tracking-widest text-muted-foreground font-bold truncate">
           {formatRecency(progress.lastActionAt) || 'Nothing yet'}
         </div>
       </div>

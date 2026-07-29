@@ -3,6 +3,7 @@ import { NlAsk } from '@workspace/api-client-react';
 import { AskInput } from './ask/ask-input';
 import { ComposerInput } from './composer-input';
 import { MAX_INTERVIEW_QUESTIONS } from './interview-constants';
+import { useDockHeight } from './use-dock-height';
 
 /**
  * The interview, docked at the bottom instead of drawn across the screen.
@@ -38,29 +39,7 @@ export const InterviewDock = ({
   const [openText, setOpenText] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
 
-  // Publish the dock's real height so the board can pad itself by exactly that.
-  React.useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const publish = () =>
-      document.documentElement.style.setProperty('--dock-h', `${el.offsetHeight}px`);
-    publish();
-    // Writing layout from inside the observer callback can re-trigger the same
-    // observation in one frame — the browser reports that as a "ResizeObserver
-    // loop" error through window.onerror with no Error object attached, which
-    // crashes the dev overlay. Deferring the write one frame breaks the loop.
-    let raf = 0;
-    const observer = new ResizeObserver(() => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(publish);
-    });
-    observer.observe(el);
-    return () => {
-      cancelAnimationFrame(raf);
-      observer.disconnect();
-      document.documentElement.style.removeProperty('--dock-h');
-    };
-  }, []);
+  useDockHeight(ref);
 
   // Typewriter reveal, but skipped on long questions where it just delays.
   React.useEffect(() => {
@@ -94,8 +73,10 @@ export const InterviewDock = ({
   return (
     <div
       ref={ref}
-      className="fixed inset-x-0 bottom-0 z-40 max-h-[52dvh] overflow-y-auto bg-card border-t border-border rounded-t-[28px] shadow-[0_-12px_32px_rgba(28,25,23,0.08)]"
-      style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+      className="fixed inset-x-0 bottom-0 z-40 max-h-[52dvh] overflow-y-auto bg-card border-t border-rule rounded-t-2xl shadow-dock pb-safe px-safe"
+      // iOS ignores interactive-widget=resizes-content, so the keyboard would
+      // simply cover the dock. useKeyboardInset publishes what it is stealing.
+      style={{ transform: 'translateY(calc(-1 * var(--kb-h, 0px)))' }}
     >
       <div className="w-full max-w-[520px] mx-auto px-5 pt-5 space-y-4">
         {/* Dots, not "3 of 5" — the board is near-wordless and the count is
@@ -105,15 +86,18 @@ export const InterviewDock = ({
             {Array.from({ length: MAX_INTERVIEW_QUESTIONS }).map((_, i) => (
               <span
                 key={i}
+                // Ink, not moss. These are form progress, not achievement:
+                // answering question two of five should not look like you
+                // completed a move.
                 className={`h-1 flex-1 rounded-full ${
-                  i < answered ? 'bg-[#10B981]' : 'bg-[var(--color-divider)]'
+                  i < answered ? 'bg-ink-1' : 'bg-rule-soft'
                 }`}
               />
             ))}
           </div>
         )}
 
-        <div className="font-sans text-[19px] sm:text-[21px] font-medium leading-snug text-foreground">
+        <div className="font-sans text-lede font-medium leading-snug text-foreground">
           {typed}
           {isPending && (
             <span className="ml-2 inline-block w-2 h-5 bg-foreground/40 animate-pulse align-middle" />
@@ -126,7 +110,7 @@ export const InterviewDock = ({
           <button
             type="button"
             onClick={() => setOpenText(true)}
-            className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground font-bold hover:text-foreground transition-colors"
+            className="font-mono text-kicker uppercase tracking-widest text-muted-foreground font-bold hover:text-foreground transition-colors"
           >
             Or say it your way
           </button>
@@ -145,7 +129,7 @@ export const InterviewDock = ({
         )}
 
         {!!error && (
-          <div className="font-mono text-[10px] uppercase tracking-widest text-[#BE123C] font-bold">
+          <div className="font-mono text-kicker uppercase tracking-widest text-danger font-bold">
             Lost the thread. Send that again.
           </div>
         )}

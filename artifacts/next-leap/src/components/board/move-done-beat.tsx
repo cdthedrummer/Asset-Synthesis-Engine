@@ -44,7 +44,7 @@ export const MoveDoneBeat = ({
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 260, damping: 20 }}
           className={`w-14 h-14 rounded-full flex items-center justify-center ${
-            tone === 'done' ? 'bg-[#10B981]' : 'bg-muted'
+            tone === 'done' ? 'bg-moss' : 'bg-muted'
           }`}
         >
           <Check
@@ -59,7 +59,7 @@ export const MoveDoneBeat = ({
           transition={{ delay: reduce ? 0 : 0.25 }}
           className="mt-6"
         >
-          <div className="font-sans text-[40px] font-bold leading-none tracking-tight text-foreground">
+          <div className="font-sans text-metric font-bold leading-none tracking-tight text-foreground">
             {progress.done}
           </div>
           <CycleDots progress={progress} className="mt-3 justify-center" />
@@ -69,7 +69,7 @@ export const MoveDoneBeat = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: reduce ? 0 : 0.45 }}
-          className={`mt-6 max-w-[300px] text-[15px] leading-relaxed font-medium ${
+          className={`mt-6 max-w-[300px] text-body leading-relaxed font-medium ${
             tone === 'done' ? 'text-foreground' : 'text-muted-foreground'
           }`}
         >

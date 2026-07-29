@@ -46,7 +46,7 @@ export function markRevealSeen(token: string): void {
   }
 }
 
-const KICKER = 'font-mono text-[10px] uppercase tracking-widest font-bold';
+const KICKER = 'font-mono text-kicker uppercase tracking-widest font-bold';
 
 export const RevealOverlay = ({
   pins,
@@ -119,7 +119,7 @@ export const RevealOverlay = ({
                 exit={{ opacity: 0 }}
               >
                 <div className="text-center">
-                  <div className="font-sans text-[64px] font-bold leading-none tracking-tight text-foreground">
+                  <div className="font-sans text-metric-xl font-bold leading-none tracking-tight text-foreground">
                     {dropList.length}
                   </div>
                   <div className={`${KICKER} text-muted-foreground mt-3`}>{dropLabel}</div>
@@ -132,16 +132,16 @@ export const RevealOverlay = ({
                       initial={reduce ? { opacity: 0 } : { opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: reduce ? 0 : 0.35 + i * 0.18 }}
-                      className="bg-card border border-border rounded-[20px] p-4"
+                      className="bg-card border border-border rounded-lg p-4"
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div className="font-sans text-[15px] font-bold text-foreground leading-snug line-through decoration-muted-foreground/50">
+                        <div className="font-sans text-body font-bold text-foreground leading-snug line-through decoration-muted-foreground/50">
                           {pin.title}
                         </div>
                         <VerdictStamp verdict={pin.verdict} />
                       </div>
                       {pin.verdictWhy && (
-                        <div className="text-[13px] text-muted-foreground mt-2 leading-relaxed">
+                        <div className="text-caption text-muted-foreground mt-2 leading-relaxed">
                           {pin.verdictWhy}
                         </div>
                       )}
@@ -184,12 +184,12 @@ export const RevealOverlay = ({
                       initial={reduce ? { opacity: 0 } : { opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: reduce ? 0 : 0.15 + i * 0.12 }}
-                      className="bg-card border border-border rounded-[20px] p-4"
+                      className="bg-card border border-border rounded-lg p-4"
                     >
-                      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1.5">
+                      <div className="font-mono text-kicker uppercase tracking-widest text-muted-foreground font-bold mb-1.5">
                         {move.title}
                       </div>
-                      <div className="font-sans text-[15px] font-bold text-foreground leading-snug">
+                      <div className="font-sans text-body font-bold text-foreground leading-snug">
                         {move.first48}
                       </div>
                     </motion.div>
@@ -201,7 +201,7 @@ export const RevealOverlay = ({
                 <div className="mt-8 border-t border-border pt-5">
                   <div className={`${KICKER} text-muted-foreground`}>Keep this link</div>
                   <div className="mt-3 flex items-center gap-2">
-                    <div className="flex-1 min-w-0 font-mono text-[11px] text-muted-foreground truncate bg-canvas border border-border rounded-full px-3 py-2">
+                    <div className="flex-1 min-w-0 font-mono text-kicker-lg text-muted-foreground truncate bg-canvas border border-border rounded-full px-3 py-2">
                       {typeof window !== 'undefined' ? window.location.href : ''}
                     </div>
                     <button
@@ -209,10 +209,10 @@ export const RevealOverlay = ({
                       className="shrink-0 w-9 h-9 rounded-full border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-95 transition-all"
                       aria-label="Copy the board link"
                     >
-                      {copied ? <Check className="w-4 h-4 text-[#10B981]" /> : <Copy className="w-4 h-4" />}
+                      {copied ? <Check className="w-4 h-4 text-moss" /> : <Copy className="w-4 h-4" />}
                     </button>
                   </div>
-                  <div className="mt-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70 font-bold sm:hidden">
+                  <div className="mt-2 font-mono text-kicker-sm uppercase tracking-widest text-muted-foreground/70 font-bold sm:hidden">
                     Add to home screen
                   </div>
                 </div>
@@ -222,7 +222,7 @@ export const RevealOverlay = ({
         </div>
       </div>
 
-      <div className="p-6 pb-8 border-t border-border bg-card/60 backdrop-blur">
+      <div className="px-6 pt-6 pb-safe border-t border-border bg-card/60 backdrop-blur">
         <div className="max-w-[440px] mx-auto flex gap-3">
           {isLast ? (
             <>

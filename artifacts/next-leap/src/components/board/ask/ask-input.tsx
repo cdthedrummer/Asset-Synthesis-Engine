@@ -21,7 +21,7 @@ const SUBMIT_BTN =
   'w-11 h-11 shrink-0 rounded-full bg-foreground text-background flex items-center justify-center disabled:opacity-30 active:scale-95 transition-all';
 
 const RECOMMENDED =
-  'ml-1.5 font-mono text-[9px] uppercase tracking-widest text-muted-foreground font-bold';
+  'ml-1.5 font-mono text-kicker-sm uppercase tracking-widest text-muted-foreground font-bold';
 
 function ChoiceLabel({ choice }: { choice: NlAskChoice }) {
   return (
@@ -49,7 +49,7 @@ const AskSingle = ({
         type="button"
         disabled={disabled}
         onClick={() => onAnswer(choice.label)}
-        className="px-4 py-2.5 rounded-full bg-card border border-border shadow-sm font-sans text-[14px] font-medium text-foreground hover:border-[#10B981] hover:text-[#059669] active:scale-95 transition-all disabled:opacity-50 animate-in fade-in slide-in-from-bottom-1 duration-300"
+        className="px-4 py-2.5 rounded-full bg-card border border-border shadow-sm font-sans text-body font-medium text-foreground hover:border-ink-1 hover:text-ink-1 active:scale-95 transition-all disabled:opacity-50 animate-in fade-in slide-in-from-bottom-1 duration-300"
       >
         <ChoiceLabel choice={choice} />
       </button>
@@ -88,9 +88,9 @@ const AskMulti = ({
               type="button"
               disabled={disabled || blocked}
               onClick={() => toggle(choice.label)}
-              className={`px-4 py-2.5 rounded-full border font-sans text-[14px] font-medium active:scale-95 transition-all disabled:opacity-40 ${
+              className={`px-4 py-2.5 rounded-full border font-sans text-body font-medium active:scale-95 transition-all disabled:opacity-40 ${
                 on
-                  ? 'bg-[#ECFDF5] border-[#10B981] text-[#059669]'
+                  ? 'bg-sunken border-ink-1 text-ink-1'
                   : 'bg-card border-border text-foreground shadow-sm'
               }`}
             >
@@ -136,7 +136,7 @@ const AskRank = ({
 
   return (
     <div className="space-y-3">
-      <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground font-bold">
+      <div className="font-mono text-kicker-sm uppercase tracking-widest text-muted-foreground font-bold">
         Tap in order
       </div>
       <div className="space-y-2">
@@ -148,15 +148,15 @@ const AskRank = ({
               type="button"
               disabled={disabled}
               onClick={() => toggle(item)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-[16px] border text-left font-sans text-[14px] font-medium active:scale-[0.98] transition-all disabled:opacity-50 ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-md border text-left font-sans text-body font-medium active:scale-[0.98] transition-all disabled:opacity-50 ${
                 rank >= 0
-                  ? 'bg-[#ECFDF5] border-[#10B981] text-[#059669]'
+                  ? 'bg-sunken border-ink-1 text-ink-1'
                   : 'bg-card border-border text-foreground shadow-sm'
               }`}
             >
               <span
-                className={`w-6 h-6 shrink-0 rounded-full flex items-center justify-center font-mono text-[11px] font-bold ${
-                  rank >= 0 ? 'bg-[#10B981] text-white' : 'border border-border text-muted-foreground'
+                className={`w-6 h-6 shrink-0 rounded-full flex items-center justify-center font-mono text-kicker-lg font-bold ${
+                  rank >= 0 ? 'bg-moss text-white' : 'border border-border text-muted-foreground'
                 }`}
               >
                 {rank >= 0 ? rank + 1 : ''}
@@ -202,11 +202,11 @@ const AskScale = ({
   return (
     <div className="space-y-4">
       <div className="text-center">
-        <span className="font-sans text-[40px] font-bold leading-none tracking-tight text-foreground">
+        <span className="font-sans text-metric font-bold leading-none tracking-tight text-foreground">
           {value}
         </span>
         {ask.unit && (
-          <span className="ml-1.5 font-mono text-[12px] uppercase tracking-widest text-muted-foreground font-bold">
+          <span className="ml-1.5 font-mono text-caption uppercase tracking-widest text-muted-foreground font-bold">
             {ask.unit}
           </span>
         )}
@@ -219,7 +219,7 @@ const AskScale = ({
         disabled={disabled}
         onValueChange={([v]) => setValue(v ?? min)}
       />
-      <div className="flex items-center justify-between font-mono text-[9px] uppercase tracking-widest text-muted-foreground font-bold">
+      <div className="flex items-center justify-between font-mono text-kicker-sm uppercase tracking-widest text-muted-foreground font-bold">
         <span className="truncate">{ask.minLabel ?? min}</span>
         <span className="truncate text-right">{ask.maxLabel ?? max}</span>
       </div>
@@ -257,18 +257,18 @@ const AskImage = ({
           type="button"
           disabled={disabled}
           onClick={() => onAnswer(choice.label)}
-          className="bg-card border border-border rounded-[20px] p-4 flex flex-col items-center gap-2.5 shadow-sm hover:border-[#10B981] active:scale-[0.97] transition-all disabled:opacity-50"
+          className="bg-card border border-border rounded-lg p-4 flex flex-col items-center gap-2.5 shadow-sm hover:border-ink-1 active:scale-[0.97] transition-all disabled:opacity-50"
         >
-          <span className="w-12 h-12 rounded-[14px] bg-canvas flex items-center justify-center text-foreground">
+          <span className="w-12 h-12 rounded-md bg-canvas flex items-center justify-center text-foreground">
             {Icon ? (
               <Icon className="w-6 h-6" strokeWidth={1.75} />
             ) : (
-              <span className="font-sans text-[18px] font-bold">
+              <span className="font-sans text-body-lg font-bold">
                 {choice.label.slice(0, 1).toUpperCase()}
               </span>
             )}
           </span>
-          <span className="font-sans text-[13px] font-medium text-foreground text-center leading-tight">
+          <span className="font-sans text-caption font-medium text-foreground text-center leading-tight">
             <ChoiceLabel choice={choice} />
           </span>
         </button>

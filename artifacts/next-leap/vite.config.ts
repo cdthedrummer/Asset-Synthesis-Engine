@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
+import { mockApi } from './vite.mock-api';
 
 const rawPort = process.env.PORT;
 
@@ -33,6 +34,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
+    // Dev-only fixture API so the board surfaces can be looked at without a
+    // database. Off unless explicitly asked for; see vite.mock-api.ts.
+    ...(process.env.NL_MOCK_API === '1' ? [mockApi()] : []),
     ...(process.env.NODE_ENV !== 'production' &&
     process.env.REPL_ID !== undefined
       ? [

@@ -7,7 +7,7 @@ export const ExpandedTrajectoryView = ({ trajectory, onBack, onHome }: { traject
   if (!trajectory) return null;
   return (
     <div className="fixed inset-0 bg-background z-[60] flex flex-col animate-in slide-in-from-bottom-4 duration-300">
-      <div className="px-4 pt-6 pb-4 border-b border-border bg-background/80 backdrop-blur-xl">
+      <div className="px-4 pt-safe pb-4 border-b border-border bg-background/80 backdrop-blur-xl">
         <Breadcrumb onHome={onHome} onBack={onBack} title={trajectory.title || "Trajectory"} />
       </div>
       
@@ -25,9 +25,9 @@ export const ExpandedTrajectoryView = ({ trajectory, onBack, onHome }: { traject
               const value = point ? `${isMoney ? '~$' : '~'}${Number(point.y).toLocaleString()}${trajectory.unit || ''}` : m.x;
               return (
                 <div key={i} className="relative pl-10">
-                  <div className={`absolute ${isLast ? 'left-[5.5px] top-0.5 w-[13px] h-[13px] rounded-full bg-[#10B981] border-2 border-white shadow-sm' : 'left-[6.5px] top-1 w-[11px] h-[11px] rounded-full bg-white border-2 border-[#10B981]'}`}></div>
-                  <div className={`text-[11px] font-mono font-bold ${isLast ? 'text-[#10B981]' : 'text-muted-foreground'} mb-1 tracking-widest uppercase`}>{m.x} — {m.label}</div>
-                  <div className="text-[20px] text-foreground font-bold font-sans">{value}</div>
+                  <div className={`absolute ${isLast ? 'left-[5.5px] top-0.5 w-[13px] h-[13px] rounded-full bg-moss border-2 border-white shadow-sm' : 'left-[6.5px] top-1 w-[11px] h-[11px] rounded-full bg-white border-2 border-moss'}`}></div>
+                  <div className={`text-kicker-lg font-mono font-bold ${isLast ? 'text-moss' : 'text-muted-foreground'} mb-1 tracking-widest uppercase`}>{m.x} — {m.label}</div>
+                  <div className="text-title text-foreground font-bold font-sans">{value}</div>
                 </div>
               );
             })}

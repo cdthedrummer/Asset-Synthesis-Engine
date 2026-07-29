@@ -29,7 +29,7 @@ export const ProgressRing = ({
         cy={size / 2}
         r={r}
         fill="none"
-        stroke="var(--color-divider)"
+        stroke="var(--rule-soft)"
         strokeWidth={3}
       />
       <circle
@@ -37,7 +37,7 @@ export const ProgressRing = ({
         cy={size / 2}
         r={r}
         fill="none"
-        stroke="#10B981"
+        stroke="var(--moss)"
         strokeWidth={3}
         strokeLinecap="round"
         strokeDasharray={circumference}
@@ -71,16 +71,16 @@ export const PinChecklist = ({
   const doneCount = tasks.filter(t => t.done).length;
 
   return (
-    <div className="bg-card border border-border rounded-[20px] p-5">
+    <div className="bg-card border border-border rounded-lg p-5">
       <div className="flex items-baseline justify-between mb-2">
-        <h3 className="font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        <h3 className="font-mono text-kicker font-bold uppercase tracking-widest text-muted-foreground">
           Checklist
         </h3>
         {/* Same grammar as the pulse card: the visual carries it, the number
             just confirms it. */}
         <span className="flex items-center gap-2">
           <ProgressRing done={doneCount} total={tasks.length} />
-          <span className="font-mono text-[10px] text-muted-foreground">
+          <span className="font-mono text-kicker text-muted-foreground">
             {doneCount}/{tasks.length}
           </span>
         </span>
@@ -97,15 +97,15 @@ export const PinChecklist = ({
               }
               className={`w-[22px] h-[22px] shrink-0 rounded-full border-2 flex items-center justify-center transition-colors ${
                 task.done
-                  ? 'bg-[#10B981] border-[#10B981] text-white'
-                  : 'border-border hover:border-[#10B981]'
+                  ? 'bg-moss border-moss text-white'
+                  : 'border-border hover:border-ink-1'
               }`}
               aria-label={task.done ? 'Mark not done' : 'Mark done'}
             >
               {task.done && <Check className="w-3 h-3" strokeWidth={3} />}
             </button>
             <span
-              className={`flex-1 font-sans text-[15px] leading-snug ${
+              className={`flex-1 font-sans text-body leading-snug ${
                 task.done ? 'text-muted-foreground line-through' : 'text-foreground'
               }`}
             >
@@ -118,7 +118,7 @@ export const PinChecklist = ({
                   { onSuccess: invalidate, onError: onBlocked },
                 )
               }
-              className="opacity-60 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 p-1.5 text-muted-foreground hover:text-[#BE123C] transition-all"
+              className="opacity-60 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 p-1.5 text-muted-foreground hover:text-danger transition-all"
               aria-label="Remove task"
             >
               <X className="w-3.5 h-3.5" />
